@@ -1,11 +1,18 @@
 import gym
 from gym import spaces
 import numpy as np
-
+import random as rand
+import gaddag as g
 
 class ScrabbleEnv(gym.Env):
     def __init__(self):
         super(ScrabbleEnv, self).__init__()
+
+        # Initialize the GADDAG (creating an instance)
+        self.gaddag = g.Gaddag()
+        ## I'm not sure how to load the json file into the GADDAG, i tried using
+        # self.gaddag = g.Gaddag().load_from_json(SOWPODS.json)
+        # maybe I converted the .txt file discord to a .json file wrong
 
         # Board dimensions
         self.rows = 15
@@ -77,38 +84,66 @@ class ScrabbleEnv(gym.Env):
         # Fill the player's rack with random letters from the letter bag
         for i in range(7):
             if self.letter_rack[i] == -1:
-                self.letter_rack[i] = np.random.choice([k for k, v in self.letter_bag.items() if v > 0])
-                self.letter_bag[self.letter_rack[i]] -= 1
+                letter = rand.choice([k for k, v in self.letter_bag.items() if v > 0])
+                self.letter_rack[i] = letter
+                self.letter_bag[letter] -= 1
 
-
-
-    # this should be changed into inputting a whole word,
-    # I just need the helper to check if a word is valid or not,
-    # then we can add the reward function based on that
     def step(self, action):
-        row, col, rack_index = action
-
-        # Validate action
-        if not (0 <= rack_index < 7) or self.board[row, col] != -1:
-            return {"board": self.board, "letter_rack": self.letter_rack}, -1, False, {}
-
-        # Get the letter from the specified rack position
-        letter = self.letter_rack[rack_index]
-        if letter == -1:
-            # Invalid if the selected rack slot is empty
+        row, col, letter = action
+        if self.board[row, col] != -1 or self.letter_rack[letter] == -1:
             return {"board": self.board, "letter_rack": self.letter_rack}, -1, False, {}
 
         # Place the letter on the board
         self.board[row, col] = letter
-        self.letter_rack[rack_index] = -1  # Remove the letter from the rack
+        self.letter_rack[np.where(self.letter_rack == letter)[0][0]] = -1
 
         # Refill the rack
         self.fill_letter_rack()
 
-        # Calculate reward (multiplier logic)
-        reward = 1  # base score, expand as needed
-
+        # Calculate reward (basic for now, we can expand this)
+        reward = 1  # Base reward
         return {"board": self.board, "letter_rack": self.letter_rack}, reward, False, {}
+
+    def is_valid_word(self, word):
+        """Use the GADDAG structure to check if a word is valid."""
+        return self.gaddag.word_defined(word)
+
+    def place_word(self, row, col, direction, word, rack_letter_indices):
+        # Validate word using Gaddag
+        if not self.is_valid_word(word):
+            print(f"'{word}' is not a valid word.")
+            return False
+
+        # Convert rack_letter_indices to actual letters
+        rack_letters = [self.letter_rack[i] for i in rack_letter_indices]
+
+        # Check if the letters are in the player's rack
+        for letter in word:
+            if letter not in rack_letters:
+                print(f"You don't have the letter '{letter}' in your rack.")
+                return False
+
+        # Place the word on the board
+        for i, letter in enumerate(word):
+            if direction == "right":
+                target_row, target_col = row, col + i
+            elif direction == "down":
+                target_row, target_col = row + i, col
+
+            # Ensure the placement is within bounds and there is no conflict
+            if target_row < 0 or target_row >= self.rows or target_col < 0 or target_col >= self.cols:
+                print(f"Placement of '{word}' goes out of bounds.")
+                return False
+            if self.board[target_row, target_col] != -1 and self.board[target_row, target_col] != ord(letter) - 65:
+                print(f"Conflict at position ({target_row}, {target_col}) with an existing letter.")
+                return False
+
+            # Place the letter (or allow it to intersect)
+            letter_index = ord(letter) - 65
+            action = (target_row, target_col, letter_index)
+            _, reward, done, _ = self.step(action)  # Call step for each letter
+
+        return True
 
     def render(self, mode="human"):
         # Convert board values to displayable characters
@@ -122,7 +157,7 @@ class ScrabbleEnv(gym.Env):
                 return " "  # empty cell
 
         # Print top border
-        print("   " + "   ".join([f"{i:2}" for i in range(self.cols)]))
+        print("   " + "  ".join([f"{i:2}" for i in range(self.cols)]))
         print("  +" + "---+" * self.cols)
 
         # Print board rows with grid lines
@@ -136,7 +171,3 @@ class ScrabbleEnv(gym.Env):
         print("Letter Rack:", " ".join(letter_rack_display))
 
 
-# Test environment
-env = ScrabbleEnv()
-obs = env.reset()
-print("Initial Observation:", obs)
