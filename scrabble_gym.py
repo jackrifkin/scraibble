@@ -167,17 +167,19 @@ class ScrabbleEnv(gym.Env):
         else:
             self.p2_score += total_score
 
-        for tile in action:
-            row, col, letter = action
+        for tile_placement in action:
+            row = tile_placement["row"]
+            col = tile_placement["col"]
+            tile = tile_placement["tile"]
 
             # place tile on board
-            self.board[row, col] = letter
+            self.board[row, col] = tile
 
             # remove tiles from letter_rack
             if self.current_player == 0:
-                self.p1_letter_rack[np.where(self.p1_letter_rack == letter)[0][0]] = -1
+                self.p1_letter_rack[np.where(self.p1_letter_rack == tile)[0][0]] = -1
             else:
-                self.p2_letter_rack[np.where(self.p2_letter_rack == letter)[0][0]] = -1
+                self.p2_letter_rack[np.where(self.p2_letter_rack == tile)[0][0]] = -1
         
         # refill rack
         self.fill_letter_racks()
