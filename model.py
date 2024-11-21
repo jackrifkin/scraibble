@@ -1,6 +1,38 @@
 import numpy as np
 from scipy.ndimage import convolve
 
+def objective_function(alpha, beta, gamma, delta, epsilon, points_scored, weighted_multipliers_used, rack_value_lost, multiplier_distance_reduction, new_rows_opened):
+    return 1 / (alpha * points_scored + beta * weighted_multipliers_used - gamma * rack_value_lost + delta * multiplier_distance_reduction + epsilon * new_rows_opened)
+
+def points_scored(board, action):
+  # return points_scored(board, action) from utility functions
+  
+def weighted_multipliers(board, action):
+  weighted_sum = 0
+
+  for tile_placement in action:
+    row = tile_placement["row"]
+    col = tile_placement["col"]
+
+    '''
+    if (row,col is multiplier (needs adjustment to gym code))
+      weighted_sum += multiplier value at row, col
+    '''
+
+  return weighted_sum
+
+def rack_value_lost(board, action, letter_heuristic_values):
+  value_lost = 0
+
+  for tile_placement in action:
+    letter = tile_placement["tile"]
+
+    value_lost += letter_heuristic_values[letter]
+
+  return value_lost
+
+def multiplier_distance_reduction(board, action):
+
 def opened_spaces(board, action):
   initial_empty_adjacent_tiles = calculate_empty_adjacent_tiles(board)
 
