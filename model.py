@@ -21,8 +21,15 @@ def weighted_multipliers(board, action):
 
   return weighted_sum
 
-def rack_value_lost(board, letter_rack, action, letter_heuristic_values):
+def rack_value_lost(board, action, letter_heuristic_values):
+  value_lost = 0
 
+  for tile_placement in action:
+    letter = tile_placement["tile"]
+
+    value_lost += letter_heuristic_values[letter]
+
+  return value_lost
 
 def multiplier_distance_reduction(board, action):
 
