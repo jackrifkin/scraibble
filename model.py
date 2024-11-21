@@ -31,4 +31,4 @@ def calculate_empty_adjacent_tiles(board):
   # tiles that are empty and adjacent to occupied tiles
   empty_and_adjacent = (adjacent_tiles > 0) & empty_tiles
   
-  return np.sum(empty_and_adjacent)
+  return np.sum(empty_and_adjacent.astype(int))
