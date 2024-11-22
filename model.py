@@ -6,6 +6,7 @@ def objective_function(alpha, beta, gamma, delta, epsilon, points_scored, weight
 
 def points_scored(board, action):
   # return points_scored(board, action) from utility functions
+  return
   
 def weighted_multipliers(board, action):
   weighted_sum = 0
@@ -32,6 +33,7 @@ def rack_value_lost(board, action, letter_heuristic_values):
   return value_lost
 
 def multiplier_distance_reduction(board, action):
+  return
 
 def opened_spaces(board, action):
   initial_empty_adjacent_tiles = calculate_empty_adjacent_tiles(board)
