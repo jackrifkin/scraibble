@@ -22,7 +22,16 @@ def weighted_multipliers(board, action):
 
   return weighted_sum
 
-def rack_value_lost(board, action, letter_heuristic_values):
+def rack_value_lost(board, action):
+  letter_heuristic_values = {
+    'A': 2, 'B': 4, 'C': 4, 'D': 4, 'E': 2,
+    'F': 6, 'G': 4, 'H': 6, 'I': 2, 'J': 12,
+    'K': 9, 'L': 2, 'M': 4, 'N': 2, 'O': 2,
+    'P': 4, 'Q': 12, 'R': 2, 'S': 2, 'T': 2,
+    'U': 2, 'V': 6, 'W': 6, 'X': 10, 'Y': 6, 'Z': 10,
+    '_': 0
+  }
+
   value_lost = 0
 
   for tile_placement in action:
