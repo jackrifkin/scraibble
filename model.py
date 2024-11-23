@@ -45,7 +45,7 @@ def rack_value_lost(board, action):
 
 # We assume that the opponent can definitely reach 3 spots outwards from any move that we play
 # Should we make this a dynamic measure later on?
-def multiplier_distance_reduction(board, action, opponent_range=3):
+def multiplier_distance_reduction(action, opponent_range=3):
 
   ## HELPER FUNCTIONS ##
   # Euclidean distance between tile and multiplier
@@ -67,6 +67,14 @@ def multiplier_distance_reduction(board, action, opponent_range=3):
   ## Actual iteration logic
   for tile_placement in action:
     for pos, _ in LETTER_MULTIPLIER_POSITIONS:
+      score += proximity_score(tile_placement, pos)
+
+      if is_multiplier_exposed(tile_placement, pos, opponent_range):
+        score -= 6
+      elif calculate_distance(tile_placement, pos) > opponent_range:
+        score += 3
+    
+    for pos, _ in WORD_MULTIPLIER_POSITIONS:
       score += proximity_score(tile_placement, pos)
 
       if is_multiplier_exposed(tile_placement, pos, opponent_range):
