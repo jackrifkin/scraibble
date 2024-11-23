@@ -1,13 +1,12 @@
 import numpy as np
 from scipy.ndimage import convolve
-from util import WORD_MULTIPLIER_POSITIONS, LETTER_MULTIPLIER_POSITIONS, TILE_VALUES, TILE_COUNTS, BOARD_DIM
+from util import WORD_MULTIPLIER_POSITIONS, LETTER_MULTIPLIER_POSITIONS, calculate_score_for_action
 
 def objective_function(alpha, beta, gamma, delta, epsilon, points_scored, weighted_multipliers_used, rack_value_lost, multiplier_distance_reduction, new_rows_opened):
     return 1 / (alpha * points_scored + beta * weighted_multipliers_used - gamma * rack_value_lost + delta * multiplier_distance_reduction + epsilon * new_rows_opened)
 
 def points_scored(board, action):
-  # return points_scored(board, action) from utility functions
-  return
+  return calculate_score_for_action(board, action)
   
 def weighted_multipliers(board, action):
   weighted_sum = 0
