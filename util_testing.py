@@ -64,8 +64,8 @@ board3[0, 3] = 15
 board3[0, 6] = 4
 
 rack1 = np.array([2, 0, 12, 15, 11, 17, 0])
-rack2 = np.array([2, 0, 12, 15, 11, 17, 0])
-rack3 = np.array([2, 0, 12, 15, 11, 17, 0])
+rack2 = np.array([18, 8])
+rack3 = np.array([19, 14])
  
 print(util.is_action_continuous(board0, vertical_action))
 print(util.get_words_made_by_action(board0, vertical_action)) # should produce: 'BEFGH', 'DE', 'FIN'

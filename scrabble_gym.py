@@ -170,6 +170,7 @@ class ScrabbleEnv(gym.Env):
                 col = next[1]
                 return curr
         
+        ## returns boolean
         def check_candidate(coord, candidate, direction, step):
             last_arc = candidate
             state = candidate.destination
@@ -184,16 +185,17 @@ class ScrabbleEnv(gym.Env):
                 row, col = util.offset(coord, direction, step)
             return tile in last_arc.letter_set
         
+        # clears existing crossets next to the word being made
         def clear_existing_crosssets(self, crosssets, coord, direction):
             rightmost_coord = get_last_letter(self.board, coord, direction, 1)
             right_empty = util.offset(rightmost_coord, direction, 1)
             if (self.board[right_empty[0], right_empty[1]]) == -1:
-                crosssets[right_empty[0], right_empty[1]][direction.value] = {}
+                crosssets[right_empty[0], right_empty[1]][direction.value] = set()
 
             leftmost_coord = get_last_letter(self.board, coord, direction, -1)
             left_empty = util.offset(leftmost_coord, direction, -1)
             if (self.board[left_empty[0], left_empty[1]]) == -1:
-                [left_empty[0], left_empty[1]][direction.value] = {}
+                [left_empty[0], left_empty[1]][direction.value] = set()
         
         if self.board[start_coordinate[0], start_coordinate[1]] is None or self.board[start_coordinate[0], start_coordinate[1]] == -1:
             return # do not do anything
@@ -225,9 +227,13 @@ class ScrabbleEnv(gym.Env):
         curr_char = util.char_idx_to_char(self.board(curr_coord))
         if self.board[left_of_left] != -1:
             candidates = (arc for arc in state if arc.char != DELIM)
-            cross_set = set(
-                candidate.character for candidate in candidates if check_candidate(left_square, candidate, direction, -1) ## TODO - change to set of ints (map each character to an int)
-            ) ## TODO - check where i made crosssets into a new dictionary and change it to a set
+            cross_set_characters = [
+                candidate.character 
+                for candidate in candidates 
+                if check_candidate(left_square, candidate, direction, -1)
+            ]
+            cross_set_indices = map(util.char_to_char_idx, cross_set_characters)
+            cross_set = set(cross_set_indices)
             self.cross_sets[left_square[0], left_square[1]][direction.value] = cross_set
         else:
             cross_set = last_state.get_arc(curr_char).letter_set()
@@ -237,9 +243,13 @@ class ScrabbleEnv(gym.Env):
         if self.board[right_of_right] != -1:
             end_state = state.get_next(DELIM)
             candidates = (arc for arc in end_state if arc != DELIM) if end_state else {}
-            cross_set = set(
-                candidate.character for candidate in candidates if check_candidate(right_square, candidate, direction, 1)
-            )
+            cross_set_characters = [
+                candidate.character 
+                for candidate in candidates 
+                if check_candidate(right_square, candidate, direction, 1)
+            ]
+            cross_set_indices = map(util.char_to_char_idx, cross_set_characters)
+            cross_set = set(cross_set_indices)
             self.cross_sets[right_square[0], right_square[1]][direction.value] = cross_set
         else:
             end_arc = state.get_arc(DELIM)

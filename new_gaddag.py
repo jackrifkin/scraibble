@@ -34,18 +34,22 @@ class State:
     def __init__(self):
         self.arcs = dict()
         self.letter_set = set()
+
+    def __iter__(self):
+        for char in self.arcs:
+            yield self.arcs[char]
     
     def __contains__(self, char):
         return char in self.arcs
 
     # destination is a State
     # if no destination, the default destination is empty new State
-    def add_arc(self, character, destination):
+    def add_arc(self, character: str, destination: "State" = None) -> "State":
         if character not in self.arcs:
             self.arcs[character] = Arc(character, destination)
         return self.get_next(character)
     
-    def add_final_arc(self, character, final_character):
+    def add_final_arc(self, character: str, final_character: str) -> "State":
         if character not in self.arcs:
             self.arcs[character] = Arc(character, State())
         self.get_next(character).add_to_letter_set(final_character)
