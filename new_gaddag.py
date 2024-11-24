@@ -15,7 +15,7 @@ class Arc:
     def letter_set(self):
         # getting the letter set from the destination set
         if self.destination:
-            return self.destinaton.letter_set
+            return self.destination.letter_set
         else:
             return None
     
@@ -77,12 +77,12 @@ class State:
 class Gaddag:
     ## represents a bidirectional acyclic word graph to traverse in order to find playable words
 
-    __slots__ = "root" # the root State of the GADDAG
+    __slots__ = "_root" # the root State of the GADDAG
 
     def __init__(self):
-        self.root = State()
-        self.construct_from_txt("SOWPODS.txt")
-    
+        self._root = self.construct_from_txt("SOWPODS.txt")
+        print('\n\nInitialized GADDAG...\n\n')
+
     # string input representing a filepath
     @classmethod
     def construct_from_txt(cls, filepath):
@@ -92,7 +92,10 @@ class Gaddag:
                 word = line.strip()
                 word = word.upper()
                 Gaddag.add_word(root, word)
-        return cls(root)
+        return root
+    
+    def root(self):
+        return self._root
     
     # takes a string input of word to be added to gaddag
     @staticmethod

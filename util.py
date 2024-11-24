@@ -326,6 +326,9 @@ def generate_possible_moves(board, rack):
   :param rack: A numpy array of integers representing the rack (-1 = emptpy, 0 = A, ..., 25 = Z, 26 = blank).
   :return: A list of unique actions, where each action is a list of dictionaries describing tile placements.
             Each dictionary contains 'row', 'col', and 'tile' keys.
+
+  CREDIT: Logic derived from Steven A. Gordon's "A Faster Scrabble Move Generation Algorithm"
+          https://ericsink.com/downloads/faster-scrabble-gordon.pdf 
   """
   actions = []
   anchors_used = set()
@@ -352,10 +355,15 @@ def generate_possible_moves(board, rack):
       new_tiles = new_tiles.copy()
       go_on(pos, chr(tile + ord('A')), word, rack, arc.get_next(chr(tile + ord('A'))), arc, new_tiles, wildcards, anchor, direction)
 
-    elif rack:  # Explore options from the rack
+    elif np.any(rack != -1):  # Explore options from the rack
       for letter in set(rack):
+        if letter == -1:
+          return
         tmp_rack = rack.copy()
-        tmp_rack.remove(letter)
+        letter_idx = np.where(tmp_rack == letter)
+        if letter_idx[0].size == 0:
+          raise RuntimeError('Letter rack does not contain letter option')
+        tmp_rack[letter_idx] = -1
         tmp_new_tiles = new_tiles.copy()
         tmp_new_tiles.append((row, col))
         go_on(pos, chr(letter + ord('A')), word, tmp_rack, arc.get_next(chr(letter + ord('A'))), arc, tmp_new_tiles, wildcards, anchor, direction)
@@ -394,7 +402,7 @@ def generate_possible_moves(board, rack):
 
   for anchor in anchors:
     for direction in DIRECTION:  # Horizontal and vertical, we have enum so we can change
-      initial_arc = g.Arc("", GADDAG.root)  # Arc logic, also might need to change 
+      initial_arc = g.Arc("", GADDAG.root())  # Arc logic, also might need to change 
       gen(0, "", rack.copy(), initial_arc, [], [], anchor, direction) # might need to change based on our implementation
 
   return actions
