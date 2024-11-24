@@ -1,5 +1,6 @@
 import gym
 from gym import spaces
+from new_gaddag import DELIM
 import numpy as np
 import random as rand
 import util
@@ -19,7 +20,7 @@ class ScrabbleEnv(gym.Env):
 
         for row in range(util.BOARD_DIM):
             for col in range(util.BOARD_DIM):
-                self.cross_sets[row, col] = {DIRECTION.ACROSS: np.array([], dtype=int), DIRECTION.DOWN: np.array([], dtype=int)}
+                self.cross_sets[row, col] = {DIRECTION.ACROSS: set(int), DIRECTION.DOWN: set(int)}
 
         # Letter bag setup with 100 tiles in total
         self.letter_bag = {i: 0 for i in range(27)}  # 0 to 25 for A-Z, 26 for blanks
@@ -88,8 +89,8 @@ class ScrabbleEnv(gym.Env):
         for row in range(util.BOARD_DIM):
             for col in range(util.BOARD_DIM):
                 cross_set = self.cross_sets[row][col]
-                cross_sets[row, col, 0] = cross_set[DIRECTION.DOWN]
-                cross_sets[row, col, 1] = cross_set[DIRECTION.ACROSS]
+                cross_sets[row, col, 0] = np.array(cross_set[DIRECTION.DOWN])
+                cross_sets[row, col, 1] = np.array(cross_set[DIRECTION.ACROSS])
 
         return {
             "board": self.board,
@@ -206,8 +207,44 @@ class ScrabbleEnv(gym.Env):
         while self.board(next_coord) != 1:
             curr_coord = next_coord
             last_state = state
-            state = l
+            state = last_state.get_next(curr_char)
+            if not state:
+                clear_existing_crosssets(start_coordinate, direction)
+                return
+            else:
+                next_coord = util.offset(curr_coord, direction, -1)
+        
+        # at the head of the word (?)
+        right_square = util.offset(end_coordinate, direction, 1)
+        left_square = util.offset(curr_coord, direction, -1)
 
+        # special edge case where there is a empty square with tiles on both sides (APE case)
+        left_of_left = util.offset(left_square, direction, -1)
+        right_of_right = util.offset(right_square, direction, 1)
+
+        curr_char = util.char_idx_to_char(self.board(curr_coord))
+        if self.board[left_of_left] != -1:
+            candidates = (arc for arc in state if arc.char != DELIM)
+            cross_set = set(
+                candidate.character for candidate in candidates if check_candidate(left_square, candidate, direction, -1) ## TODO - change to set of ints (map each character to an int)
+            ) ## TODO - check where i made crosssets into a new dictionary and change it to a set
+            self.cross_sets[left_square[0], left_square[1]][direction.value] = cross_set
+        else:
+            cross_set = last_state.get_arc(curr_char).letter_set()
+            self.cross_sets[left_square[0], left_square[1]][direction.value] = cross_set
+        
+        ## right side
+        if self.board[right_of_right] != -1:
+            end_state = state.get_next(DELIM)
+            candidates = (arc for arc in end_state if arc != DELIM) if end_state else {}
+            cross_set = set(
+                candidate.character for candidate in candidates if check_candidate(right_square, candidate, direction, 1)
+            )
+            self.cross_sets[right_square[0], right_square[1]][direction.value] = cross_set
+        else:
+            end_arc = state.get_arc(DELIM)
+            cross_set = end_arc.letter_set() if end_arc else {}
+            self.cross_sets[right_square[0], right_square[1]][direction.value] = cross_set
 
     def current_letter_rack_has_letter(self, letter):
         return np.isin(letter, self.p1_letter_rack if self.current_player == 0 else self.p2_letter_rack)

@@ -308,6 +308,11 @@ def offset(coord, direction, offset):
 def char_idx_to_char(char_idx):
   return "_" if char_idx == 26 else chr(ord("A") + char_idx)
 
+def char_to_char_idx(char):
+  if char == '_':
+    return 26
+  return ord(char) - 65 
+
 def generate_possible_moves(board, rack):
   """
   Generates all possible unique actions (valid word placements) given a board state and a rack of letters.
@@ -334,7 +339,7 @@ def generate_possible_moves(board, rack):
     else:
       row, col = anchor[0] + pos, anchor[1]
 
-    if row < 0 or row >= board.shape[0] or col < 0 or col >= board.shape[1]:
+    if row < 0 or row >= BOARD_DIM or col < 0 or col >= BOARD_DIM:
       return  # Out of bounds
 
     tile = board[row][col]
@@ -375,9 +380,9 @@ def generate_possible_moves(board, rack):
       actions.append([{'row': t[0], 'col': t[1], 'tile': ord(c) - ord('A')} for t, c in zip(new_tiles, word)])
 
     if new_arc:
-      if 0 <= left_row < board.shape[0] and 0 <= left_col < board.shape[1] and (left_row, left_col) not in anchors_used:
+      if 0 <= left_row < BOARD_DIM and 0 <= left_col < BOARD_DIM and (left_row, left_col) not in anchors_used:
         gen(pos - 1, word, rack, new_arc, new_tiles, wildcards, anchor, direction)
-      if 0 <= right_row < board.shape[0] and 0 <= right_col < board.shape[1]:
+      if 0 <= right_row < BOARD_DIM and 0 <= right_col < BOARD_DIM:
         gen(pos + 1, word, rack, new_arc, new_tiles, wildcards, anchor, direction)
       
   # Anchor-based recursive move generation
@@ -385,22 +390,19 @@ def generate_possible_moves(board, rack):
 
   for anchor in anchors:
     for direction in DIRECTION:  # Horizontal and vertical, we have enum so we can change
-      initial_arc = GADDAG.Arc("", GADDAG.root)  # Arc logic, also might need to change 
+      initial_arc = g.Arc("", GADDAG.root)  # Arc logic, also might need to change 
       gen(0, "", rack.copy(), initial_arc, [], [], anchor, direction) # might need to change based on our implementation
 
   return actions
     
 
-
-def get_anchors(board) {
-  
+def get_anchors(board):
   anchors = []
-
   rows, cols = BOARD_DIM, BOARD_DIM
 
   for row in range(rows):
     for col in range(cols):
-      if board[row][col] == -1: # checking if current square is empty
+      if (board[row][col] == -1): # checking if current square is empty
         
         neighbors = [
           (row - 1, col),
@@ -414,4 +416,3 @@ def get_anchors(board) {
             anchors.append((row, col))
 
   return anchors
-}

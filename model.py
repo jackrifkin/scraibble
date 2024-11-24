@@ -2,28 +2,36 @@ import numpy as np
 from scipy.ndimage import convolve
 from util import WORD_MULTIPLIER_POSITIONS, LETTER_MULTIPLIER_POSITIONS, calculate_score_for_action
 
-def objective_function(alpha, beta, gamma, delta, epsilon, points_scored, weighted_multipliers_used, rack_value_lost, multiplier_distance_reduction, new_rows_opened):
-    return 1 / (alpha * points_scored + beta * weighted_multipliers_used - gamma * rack_value_lost + delta * multiplier_distance_reduction + epsilon * new_rows_opened)
+def objective_function(alpha, beta, gamma, delta, epsilon, board, action):
+  points_scored_val = points_scored(board, action)
+  weighted_multipliers_val = weighted_multipliers(action)
+  action_use_val = action_use_value(action)
+  multiplier_distance_reduction_val = multiplier_distance_reduction(action)
+  opened_spaces_val = opened_spaces(board, action)
+  return 1 / (alpha * points_scored_val + beta * weighted_multipliers_val + gamma * action_use_val + delta * multiplier_distance_reduction_val + epsilon * opened_spaces_val)
 
+# The literal in game points scored by action
 def points_scored(board, action):
   return calculate_score_for_action(board, action)
   
-def weighted_multipliers(board, action):
+# Sum of multipliers used, weighted by their multiplier and if they are for words or letters, 
+# for the heuristic value of taking them away from the opponent
+def weighted_multipliers(action):
   weighted_sum = 0
 
   for tile_placement in action:
     row = tile_placement["row"]
     col = tile_placement["col"]
 
-    '''
-    if (row,col is multiplier (needs adjustment to gym code))
-      weighted_sum += multiplier value at row, col
-    '''
-
+    if (row, col) in WORD_MULTIPLIER_POSITIONS:
+      weighted_sum += 3 * WORD_MULTIPLIER_POSITIONS[row, col] # word multipliers are more impactful, so weighted 3x as high
+    elif (row, col) in LETTER_MULTIPLIER_POSITIONS:
+      weighted_sum += LETTER_MULTIPLIER_POSITIONS[row, col]
+    
   return weighted_sum
 
 # A higher rack value means the move is more likely to be played
-def rack_value_lost(board, action):
+def action_use_value(action):
   letter_heuristic_values = {
     'A': 2, 'B': 4, 'C': 4, 'D': 4, 'E': 2,
     'F': 6, 'G': 4, 'H': 6, 'I': 2, 'J': 12,
@@ -33,14 +41,14 @@ def rack_value_lost(board, action):
     '_': 0
   }
 
-  value_lost = 0
+  total_use_value = 0
 
   for tile_placement in action:
     letter = tile_placement["tile"]
 
-    value_lost += letter_heuristic_values[letter]
+    total_use_value += letter_heuristic_values[letter]
 
-  return value_lost
+  return total_use_value
 
 # We assume that the opponent can definitely reach 3 spots outwards from any move that we play
 # Should we make this a dynamic measure later on?
