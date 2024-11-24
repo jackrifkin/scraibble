@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.ndimage import convolve
-from util import WORD_MULTIPLIER_POSITIONS, LETTER_MULTIPLIER_POSITIONS, calculate_score_for_action
+from util import WORD_MULTIPLIER_POSITIONS, LETTER_MULTIPLIER_POSITIONS, calculate_score_for_action, char_idx_to_char
 
 def objective_function(weights, points_scored_val, weighted_multipliers_val, action_use_val, multiplier_distance_reduction_val, opened_spaces_val):
   return weights[0] * points_scored_val + weights[1] * weighted_multipliers_val + weights[2] * action_use_val + weights[3] * multiplier_distance_reduction_val + weights[4] * opened_spaces_val
@@ -41,7 +41,7 @@ def action_use_value(action):
   for tile_placement in action:
     letter = tile_placement["tile"]
 
-    total_use_value += letter_heuristic_values[letter]
+    total_use_value += letter_heuristic_values[char_idx_to_char(letter)]
 
   return total_use_value
 
@@ -55,6 +55,7 @@ def multiplier_distance_reduction(action, opponent_range=3):
   # TODO is euclidean distance the right metric? 4 tiles away in one direction is 1 move away, 
   # but that same distance in euclidean distance (or even shorter) is 2 moves away
   def calculate_distance(placement, multiplier_pos):
+    print(multiplier_pos)
     return np.sqrt((placement["row"] - multiplier_pos[0]) ** 2 + (placement["col"] - multiplier_pos[1]) ** 2)
 
   # Decay function - encourages playing towards multipliers 

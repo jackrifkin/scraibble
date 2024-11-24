@@ -47,13 +47,16 @@ class State:
     def add_arc(self, character: str, destination: "State" = None) -> "State":
         if character not in self.arcs:
             self.arcs[character] = Arc(character, destination)
+        elif not self.arcs[character].destination:
+            self.arcs[character].destination = destination or State()
         return self.get_next(character)
     
     def add_final_arc(self, character: str, final_character: str) -> "State":
         if character not in self.arcs:
             self.arcs[character] = Arc(character, State())
-        self.get_next(character).add_to_letter_set(final_character)
-        return self.get_next(character)
+        arc = self.arcs[character]
+        arc.destination.add_to_letter_set(final_character)
+        return arc.destination
 
     # gets the next node that this character leads to, which is a State
     def get_next(self, character):
@@ -80,6 +83,8 @@ class Gaddag:
     __slots__ = "_root" # the root State of the GADDAG
 
     def __init__(self):
+        # self._root = None
+        self._root = State()
         self._root = self.construct_from_txt("SOWPODS.txt")
         print('\n\nInitialized GADDAG...\n\n')
 
@@ -87,11 +92,16 @@ class Gaddag:
     @classmethod
     def construct_from_txt(cls, filepath):
         root = State()
+        count = 0
         with open(filepath, "r") as file:
             for line in file:
                 word = line.strip()
                 word = word.upper()
                 Gaddag.add_word(root, word)
+        
+        for char, arc in root.arcs.items():
+            print(f"Character: {char}, Letter Set: {arc.destination.letter_set}")
+        print(count)
         return root
     
     def root(self):
@@ -99,7 +109,7 @@ class Gaddag:
     
     # takes a string input of word to be added to gaddag
     @staticmethod
-    def add_word(root, word):
+    def add_word(root: "State", word: str):
         word = word.upper()
         # store a word path with reversed suffix > prefix
         # Example:
@@ -108,13 +118,13 @@ class Gaddag:
         # But we also want to store arcs for all of the combinations of substrings of WORD (so repeat for WOR, ORD, OR, WO, RD)
         state = root
         # gets from the last character to the third character in the word (inclusive)
-        for c in reversed(word[2:]):
+        for c in word[len(word):1:-1]:
             state = state.add_arc(c) ## TODO - double check if passing in no destination is okay
         state.add_final_arc(word[1], word[0])
 
         # gets from the second last character to the first character in the word (ex: ROW for WORD)
         state = root
-        for c in reversed(word[:len(word) - 1]):
+        for c in word[len(word) - 2::-1]:
             state = state.add_arc(c)
         state.add_final_arc(DELIM, word[-1])
 
@@ -123,7 +133,7 @@ class Gaddag:
         for i in range(len(word) - 2, 0, -1):
             destination = state
             state = root
-            for c in reversed(word[i - 1]):
+            for c in word[i - 1::-1]:
                 state = state.add_arc(c)
             state = state.add_arc(DELIM)
             # make state for next iteration at the second to last node, and the destination is this state

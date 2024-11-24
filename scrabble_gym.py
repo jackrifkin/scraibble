@@ -16,11 +16,9 @@ class ScrabbleEnv(gym.Env):
 
         # Initialize the game board
         self.board = np.full((util.BOARD_DIM, util.BOARD_DIM), -1)  # -1 for empty cells
-        self.cross_sets = np.full((util.BOARD_DIM, util.BOARD_DIM), None, dtype=object)
+        self.cross_sets = np.full((util.BOARD_DIM, util.BOARD_DIM, 2, 26), -1, dtype=int)
 
-        for row in range(util.BOARD_DIM):
-            for col in range(util.BOARD_DIM):
-                self.cross_sets[row, col] = {DIRECTION.ACROSS: set(int), DIRECTION.DOWN: set(int)}
+        self.cross_sets[7, 7, DIRECTION.ACROSS.value] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
 
         # Letter bag setup with 100 tiles in total
         self.letter_bag = {i: 0 for i in range(27)}  # 0 to 25 for A-Z, 26 for blanks
@@ -56,9 +54,11 @@ class ScrabbleEnv(gym.Env):
             "current_player": spaces.Discrete(2)
         })
 
+        print('\nInitialized ScrabbleEnv\n')
+
     def reset(self):
         self.__init__()
-        return self.observation_space
+        return self.get_observation()
 
     def draw_letter(self):
         available_letters = [k for k, v in self.letter_bag.items() if v > 0]
@@ -83,14 +83,18 @@ class ScrabbleEnv(gym.Env):
                     return
                 self.p2_letter_rack[i] = letter
 
+    def fill_cross_set_array(self, cross_set):
+        padded_values = np.pad(cross_set, (0, max(0, 26 - len(cross_set))), constant_values=-1)
+        return padded_values[:26]
+
     def get_observation(self):
         cross_sets = np.full((util.BOARD_DIM, util.BOARD_DIM, 2, 26), -1, dtype=int)
         
         for row in range(util.BOARD_DIM):
             for col in range(util.BOARD_DIM):
-                cross_set = self.cross_sets[row][col]
-                cross_sets[row, col, 0] = np.array(cross_set[DIRECTION.DOWN])
-                cross_sets[row, col, 1] = np.array(cross_set[DIRECTION.ACROSS])
+                cross_set = self.cross_sets[row, col]
+                cross_sets[row, col, 0] = self.fill_cross_set_array(cross_set[DIRECTION.DOWN.value])
+                cross_sets[row, col, 1] = self.fill_cross_set_array(cross_set[DIRECTION.ACROSS.value])
 
         return {
             "board": self.board,
@@ -102,7 +106,7 @@ class ScrabbleEnv(gym.Env):
     def step(self, action):
         if len(action) == 0:
             raise ValueError('Action must have at least one tile placement')
-        
+
         # validate each tile is in player's letter_rack
         for tile_placement in action:
             tile = tile_placement["tile"]
@@ -186,16 +190,16 @@ class ScrabbleEnv(gym.Env):
             return tile in last_arc.letter_set
         
         # clears existing crossets next to the word being made
-        def clear_existing_crosssets(self, crosssets, coord, direction):
+        def clear_existing_crosssets(self, coord, direction):
             rightmost_coord = get_last_letter(self.board, coord, direction, 1)
             right_empty = util.offset(rightmost_coord, direction, 1)
             if (self.board[right_empty[0], right_empty[1]]) == -1:
-                crosssets[right_empty[0], right_empty[1]][direction.value] = set()
+                self.cross_sets[right_empty[0], right_empty[1]][direction.value] = []
 
             leftmost_coord = get_last_letter(self.board, coord, direction, -1)
             left_empty = util.offset(leftmost_coord, direction, -1)
             if (self.board[left_empty[0], left_empty[1]]) == -1:
-                [left_empty[0], left_empty[1]][direction.value] = set()
+                self.cross_sets[left_empty[0], left_empty[1]][direction.value] = []
         
         if self.board[start_coordinate[0], start_coordinate[1]] is None or self.board[start_coordinate[0], start_coordinate[1]] == -1:
             return # do not do anything
@@ -233,7 +237,7 @@ class ScrabbleEnv(gym.Env):
                 if check_candidate(left_square, candidate, direction, -1)
             ]
             cross_set_indices = map(util.char_to_char_idx, cross_set_characters)
-            cross_set = set(cross_set_indices)
+            cross_set = list(cross_set_indices)
             self.cross_sets[left_square[0], left_square[1]][direction.value] = cross_set
         else:
             cross_set = last_state.get_arc(curr_char).letter_set()
@@ -249,7 +253,7 @@ class ScrabbleEnv(gym.Env):
                 if check_candidate(right_square, candidate, direction, 1)
             ]
             cross_set_indices = map(util.char_to_char_idx, cross_set_characters)
-            cross_set = set(cross_set_indices)
+            cross_set = list(cross_set_indices)
             self.cross_sets[right_square[0], right_square[1]][direction.value] = cross_set
         else:
             end_arc = state.get_arc(DELIM)
@@ -294,3 +298,13 @@ class ScrabbleEnv(gym.Env):
         current_letter_rack = self.p1_letter_rack if self.current_player == 0 else self.p2_letter_rack
         letter_rack_display = [util.char_idx_to_char(l) for l in current_letter_rack]
         print("Letter Rack:", " ".join(letter_rack_display))
+
+
+
+    ## my stuff Daniel
+    def generate_moves_p1(self):
+        return util.generate_possible_moves(self.board, self.p1_letter_rack, self.cross_sets)
+
+
+    def generate_moves_p2(self):
+        return util.generate_possible_moves(self.board, self.p2_letter_rack, self.cross_sets)

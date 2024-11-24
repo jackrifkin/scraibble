@@ -1,6 +1,7 @@
 from enum import Enum
 import numpy as np
 import new_gaddag as g
+import string
 
 # CONSTANTS
 WORD_MULTIPLIER_POSITIONS = {
@@ -34,7 +35,7 @@ LETTER_MULTIPLIER_POSITIONS = {
 TILE_VALUES = [1, 3, 3, 2, 1, 4, 2, 4, 1, 8, 5, 1, 3, 1, 1, 3, 10, 1, 1, 1, 1, 4, 4, 8, 4, 10, 0]
 
 # actual # of tiles per letter in Scrabble:
-TILE_COUNTS = [9, 2, 2, 4, 12, 2, 3, 2, 9, 1, 1, 4, 2, 6, 8, 2, 1, 6, 4, 6, 4, 2, 2, 1, 2, 1, 2]
+TILE_COUNTS = [9, 2, 2, 4, 12, 2, 3, 2, 9, 1, 1, 4, 2, 6, 8, 2, 1, 6, 4, 6, 4, 2, 2, 1, 2, 1, 0] # TODO: add blanks once supported (currently set to 0)
 
 BOARD_DIM = 15
 
@@ -157,6 +158,8 @@ def calculate_score_for_action(board, action):
   # proposed_words = {'word': [[x,y,4,1], [x,y,6,1], [x,y,6,0], ...], 'word2': [[x,y,6,0], [x,y,4,1], [x,y,19,1], ...]}
   # [row, col, tile, (0 if existing tile, 1 if placed)]
   proposed_words = get_words_made_by_action(board, action)
+
+  print(proposed_words.keys())
 
   # validate each word
   for word in proposed_words.keys():
@@ -317,7 +320,7 @@ def char_to_char_idx(char):
     return 26
   return ord(char) - 65 
 
-def generate_possible_moves(board, rack):
+def generate_possible_moves(board, rack, cross_sets):
   """
   Generates all possible unique actions (valid word placements) given a board state and a rack of letters.
   Inspired by anchor-based recursive move generation.
@@ -333,7 +336,7 @@ def generate_possible_moves(board, rack):
   actions = []
   anchors_used = set()
 
-  def gen(pos, word, rack, arc, new_tiles, wildcards, anchor, direction):
+  def gen(pos, word, rack, arc, new_tiles, blanks, anchor, direction):
     """
     Recursive function to generate moves based on the current position, word, and rack state.
     """
@@ -353,12 +356,16 @@ def generate_possible_moves(board, rack):
 
     if tile != -1:  # Tile is occupied
       new_tiles = new_tiles.copy()
-      go_on(pos, chr(tile + ord('A')), word, rack, arc.get_next(chr(tile + ord('A'))), arc, new_tiles, wildcards, anchor, direction)
+      go_on(pos, chr(tile + ord('A')), word, rack, arc.get_next(chr(tile + ord('A'))), arc, new_tiles, blanks, anchor, direction)
 
     elif np.any(rack != -1):  # Explore options from the rack
-      for letter in set(rack):
+      cross_set = cross_sets[row, col] if 0 <= row < BOARD_DIM and 0<= col < BOARD_DIM else list()
+      other_direction = DIRECTION.ACROSS if direction == DIRECTION.DOWN else DIRECTION.DOWN
+      cross_set = cross_set[other_direction.value]
+
+      for letter in (x for x in set(rack) if x in cross_set):
         if letter == -1:
-          return
+          continue # changed from return
         tmp_rack = rack.copy()
         letter_idx = np.where(tmp_rack == letter)
         if letter_idx[0].size == 0:
@@ -366,11 +373,23 @@ def generate_possible_moves(board, rack):
         tmp_rack[letter_idx] = -1
         tmp_new_tiles = new_tiles.copy()
         tmp_new_tiles.append((row, col))
-        go_on(pos, chr(letter + ord('A')), word, tmp_rack, arc.get_next(chr(letter + ord('A'))), arc, tmp_new_tiles, wildcards, anchor, direction)
+        go_on(pos, chr(letter + ord('A')), word, tmp_rack, arc.get_next(chr(letter + ord('A'))), arc, tmp_new_tiles, blanks, anchor, direction)
+
+      if 26 in rack: # blank case
+        for letter_char in cross_set:  # Try all valid letters from cross set (x for x in set(string.ascii_uppercase) if x in cross_set)
+          tmp_rack = rack.copy()
+          blank_idx = np.where(tmp_rack == 26)[0][0]
+          tmp_rack[blank_idx] = -1
+          tmp_new_tiles = new_tiles.copy()
+          tmp_new_tiles.append((row, col))
+          tmp_blanks = blanks.copy()
+          tmp_blanks.append((row, col))
+
+          # Continue building word
+          go_on(pos, letter_char, word, tmp_rack, arc.get_next(letter_char), arc, tmp_new_tiles, tmp_blanks, anchor, direction)
 
 
-
-  def go_on(pos, char, word, rack, new_arc, old_arc, new_tiles, wildcards, anchor, direction):
+  def go_on(pos, char, word, rack, new_arc, old_arc, new_tiles, blanks, anchor, direction):
     """
     Continue extending the word in the given direction.
     """
@@ -387,18 +406,29 @@ def generate_possible_moves(board, rack):
 
     word = char + word if pos <= 0 else word + char
 
-    # Check if it's a valid word (you'll need your dictionary logic here)
     if old_arc.letter_set and new_tiles:
-      actions.append([{'row': t[0], 'col': t[1], 'tile': ord(c) - ord('A')} for t, c in zip(new_tiles, word)])
+      # Create the action
+      action = [{'row': t[0], 'col': t[1], 'tile': ord(c) - ord('A')} for t, c in zip(new_tiles, word)]
+      
+      # Update tiles that are blanks
+      for i, (r, c) in enumerate(new_tiles):
+        if (r, c) in blanks:
+          action[i]['tile'] = 26
+
+      actions.append(action)
 
     if new_arc:
-      if 0 <= left_row < BOARD_DIM and 0 <= left_col < BOARD_DIM and (left_row, left_col) not in anchors_used:
-        gen(pos - 1, word, rack, new_arc, new_tiles, wildcards, anchor, direction)
-      if 0 <= right_row < BOARD_DIM and 0 <= right_col < BOARD_DIM:
-        gen(pos + 1, word, rack, new_arc, new_tiles, wildcards, anchor, direction)
-      
+      # Continue left if valid
+      if (0 <= left_row < BOARD_DIM and 0 <= left_col < BOARD_DIM and (left_row, left_col) not in anchors_used and board[left_row][left_col] == -1):
+        gen(pos - 1, word, rack, new_arc, new_tiles, blanks, anchor, direction)
+
+      # Continue right if valid
+      if (0 <= right_row < BOARD_DIM and 0 <= right_col < BOARD_DIM and board[right_row][right_col] == -1):
+        gen(pos + 1, word, rack, new_arc, new_tiles, blanks, anchor, direction)
+  
+
   # Anchor-based recursive move generation
-  anchors = get_anchors(board)  # Need to add anchor logic here
+  anchors = get_anchors(board) 
 
   for anchor in anchors:
     for direction in DIRECTION:  # Horizontal and vertical, we have enum so we can change
@@ -406,25 +436,25 @@ def generate_possible_moves(board, rack):
       gen(0, "", rack.copy(), initial_arc, [], [], anchor, direction) # might need to change based on our implementation
 
   return actions
-    
 
 def get_anchors(board):
   anchors = []
   rows, cols = BOARD_DIM, BOARD_DIM
 
+  mid_square_idx = 7
+  if board[mid_square_idx, mid_square_idx] == -1:
+    return [(mid_square_idx, mid_square_idx)]
   for row in range(rows):
     for col in range(cols):
-      if (board[row][col] == -1): # checking if current square is empty
-        
+      if (board[row, col] == -1): # checking if current square is empty
         neighbors = [
           (row - 1, col),
           (row + 1, col),
           (row, col - 1),
           (row, col + 1)
-        ]
-
+        ] 
         for r, c in neighbors: # checking around the empty square to look for non empties
-          if 0 <= r < rows and 0 <= c < col and board[r][c] != -1:
+          if 0 <= r < rows and 0 <= c < cols and board[r, c] != -1:
             anchors.append((row, col))
 
   return anchors
