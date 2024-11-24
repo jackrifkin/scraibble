@@ -1,5 +1,6 @@
+from enum import Enum
 import numpy as np
-import gaddag as g
+import new_gaddag as g
 
 # CONSTANTS
 WORD_MULTIPLIER_POSITIONS = {
@@ -36,10 +37,21 @@ TILE_VALUES = [1, 3, 3, 2, 1, 4, 2, 4, 1, 8, 5, 1, 3, 1, 1, 3, 10, 1, 1, 1, 1, 4
 TILE_COUNTS = [9, 2, 2, 4, 12, 2, 3, 2, 9, 1, 1, 4, 2, 6, 8, 2, 1, 6, 4, 6, 4, 2, 2, 1, 2, 1, 2]
 
 BOARD_DIM = 15
+
+# directions for cross sets
+class DIRECTION(Enum):
+  ACROSS = 1
+  DOWN = 0
+
+GADDAG = g.Gaddag()
+
+def init_gaddag():
+  GADDAG.construct_from_txt("SOWPODS.txt")
+
 # END CONSTANTS
 
 # Initialize the GADDAG (creating an instance)
-gaddag = g.Gaddag()
+
 
 def is_valid_word( word):
   """Use the GADDAG structure to check if a word is valid."""
@@ -224,7 +236,7 @@ def get_continuous_word(board, action, first_placed_letter_idx, last_placed_lett
         if cell_value == -1: # tile was placed during this action
           was_placed = 1
           cell_value = new_board[row, col]
-        word_key += ("_" if cell_value == 26 else chr(ord("A") + cell_value))
+        word_key += (char_idx_to_char(cell_value))
         letter_entries.append([row, col, cell_value, was_placed])
 
   return word_key, letter_entries
@@ -282,3 +294,124 @@ def calculate_score_for_word(word):
     else:
       total_score += TILE_VALUES[tile]
   return total_score * total_word_multiplier
+
+def offset(coord, direction, offset):
+          res = None
+          if direction == DIRECTION.ACROSS:
+              res = coord[0], coord[1] + offset # offset the column
+          elif direction == DIRECTION.DOWN:
+              res = coord[0] + offset, coord[1] # offset the row
+          else:
+              return TypeError("INVALID DIRECTION SPECIFIED")
+          return res
+
+def char_idx_to_char(char_idx):
+  return "_" if char_idx == 26 else chr(ord("A") + char_idx)
+
+def generate_possible_moves(board, rack):
+  """
+  Generates all possible unique actions (valid word placements) given a board state and a rack of letters.
+  Inspired by anchor-based recursive move generation.
+
+  :param board: A 2D numpy array representing the Scrabble board state. -1 indicates empty tiles.
+  :param rack: A numpy array of integers representing the rack (-1 = emptpy, 0 = A, ..., 25 = Z, 26 = blank).
+  :return: A list of unique actions, where each action is a list of dictionaries describing tile placements.
+            Each dictionary contains 'row', 'col', and 'tile' keys.
+  """
+  actions = []
+  anchors_used = set()
+
+  def gen(pos, word, rack, arc, new_tiles, wildcards, anchor, direction):
+    """
+    Recursive function to generate moves based on the current position, word, and rack state.
+    """
+    # Create a copy of the rack
+    rack = rack.copy()
+
+    # Calculate the current position on the board
+    if direction == DIRECTION.ACROSS:
+      row, col = anchor[0], anchor[1] + pos
+    else:
+      row, col = anchor[0] + pos, anchor[1]
+
+    if row < 0 or row >= board.shape[0] or col < 0 or col >= board.shape[1]:
+      return  # Out of bounds
+
+    tile = board[row][col]
+
+    if tile != -1:  # Tile is occupied
+      new_tiles = new_tiles.copy()
+      go_on(pos, chr(tile + ord('A')), word, rack, arc.get_next(chr(tile + ord('A'))), arc, new_tiles, wildcards, anchor, direction)
+
+    elif rack:  # Explore options from the rack
+      for letter in set(rack):
+        tmp_rack = rack.copy()
+        tmp_rack.remove(letter)
+        tmp_new_tiles = new_tiles.copy()
+        tmp_new_tiles.append((row, col))
+        go_on(pos, chr(letter + ord('A')), word, tmp_rack, arc.get_next(chr(letter + ord('A'))), arc, tmp_new_tiles, wildcards, anchor, direction)
+
+
+
+  def go_on(pos, char, word, rack, new_arc, old_arc, new_tiles, wildcards, anchor, direction):
+    """
+    Continue extending the word in the given direction.
+    """
+    
+    if direction == DIRECTION.ACROSS:
+      row, col = anchor[0], anchor[1] + pos
+      left_row, left_col = anchor[0], anchor[1] + (pos - 1)
+      right_row, right_col = anchor[0], anchor[1] + (pos + 1)
+      
+    elif direction == DIRECTION.DOWN:
+      row, col = anchor[0] + pos, anchor[1]
+      left_row, left_col = anchor[0] + (pos - 1), anchor[1]
+      right_row, right_col = anchor[0] + (pos + 1), anchor[1]
+
+    word = char + word if pos <= 0 else word + char
+
+    # Check if it's a valid word (you'll need your dictionary logic here)
+    if old_arc.letter_set and new_tiles:
+      actions.append([{'row': t[0], 'col': t[1], 'tile': ord(c) - ord('A')} for t, c in zip(new_tiles, word)])
+
+    if new_arc:
+      if 0 <= left_row < board.shape[0] and 0 <= left_col < board.shape[1] and (left_row, left_col) not in anchors_used:
+        gen(pos - 1, word, rack, new_arc, new_tiles, wildcards, anchor, direction)
+      if 0 <= right_row < board.shape[0] and 0 <= right_col < board.shape[1]:
+        gen(pos + 1, word, rack, new_arc, new_tiles, wildcards, anchor, direction)
+      
+  # Anchor-based recursive move generation
+  anchors = get_anchors(board)  # Need to add anchor logic here
+
+  for anchor in anchors:
+    for direction in DIRECTION:  # Horizontal and vertical, we have enum so we can change
+      initial_arc = GADDAG.Arc("", GADDAG.root)  # Arc logic, also might need to change 
+      gen(0, "", rack.copy(), initial_arc, [], [], anchor, direction) # might need to change based on our implementation
+
+  return actions
+    
+
+
+def get_anchors(board) {
+  
+  anchors = []
+
+  rows, cols = BOARD_DIM, BOARD_DIM
+
+  for row in range(rows):
+    for col in range(cols):
+      if board[row][col] == -1: # checking if current square is empty
+        
+        neighbors = [
+          (row - 1, col),
+          (row + 1, col),
+          (row, col - 1),
+          (row, col + 1)
+        ]
+
+        for r, c in neighbors: # checking around the empty square to look for non empties
+          if 0 <= r < rows and 0 <= c < col and board[r][c] != -1:
+            anchors.append((row, col))
+
+  return anchors
+}

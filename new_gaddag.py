@@ -57,7 +57,14 @@ class State:
             return self.arcs[character].destination 
         else:
             return None
-        
+    
+    # gets the corresponding arc from this state, if it exists
+    def get_arc(self, character):
+        if character in self.arcs:
+            return self.arcs[character]
+        else:
+            return None
+
     # adds a letter to the letter set
     def add_to_letter_set(self, character):
         self.letter_set.add(character)
@@ -70,6 +77,7 @@ class Gaddag:
 
     def __init__(self):
         self.root = State()
+        self.construct_from_txt("SOWPODS.txt")
     
     # string input representing a filepath
     @classmethod

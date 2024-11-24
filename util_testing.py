@@ -25,6 +25,6 @@ horizontal_action = [
     {"row": 3, "col": 4, "tile": 11},
 ]
 
-# print(is_action_continuous(board, action))
-# print(util.get_words_made_by_action(board, vertical_action)) # should produce: 'BEFGH', 'DE', 'FIN'
-# print(util.get_words_made_by_action(board, horizontal_action)) # should produce: 'DJKLM', 'BJ', 'CKI', 'LN'
+print(util.is_action_continuous(board, vertical_action))
+print(util.get_words_made_by_action(board, vertical_action)) # should produce: 'BEFGH', 'DE', 'FIN'
+print(util.get_words_made_by_action(board, horizontal_action)) # should produce: 'DJKLM', 'BJ', 'CKI', 'LN'
