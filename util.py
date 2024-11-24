@@ -52,10 +52,14 @@ def init_gaddag():
 
 # Initialize the GADDAG (creating an instance)
 
-
-def is_valid_word( word):
-  """Use the GADDAG structure to check if a word is valid."""
-  return gaddag.word_defined(word)
+def is_valid_word(word):
+  with open("SOWPODS.txt", "r") as file:
+    for line in file:
+      a = line.strip()
+      a = a.upper()
+      if word == a:
+        return True
+  return False
 
 def is_action_placement_valid(board, action):
   tile_placements_valid = True

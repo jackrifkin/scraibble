@@ -15,6 +15,4 @@ rack = ["C", "A", "M", "P"]
 left = ["A"]
 right = ["E"]
 
-res = gaddag.bridge_gap("camp", left, right, 1)
-print(res)
 # gaddag.save_as_json("gaddag_wordlist.txt")

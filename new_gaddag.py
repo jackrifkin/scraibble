@@ -97,6 +97,7 @@ class Gaddag:
     # takes a string input of word to be added to gaddag
     @staticmethod
     def add_word(root, word):
+        word = word.upper()
         # store a word path with reversed suffix > prefix
         # Example:
         # If we were to add a word "word", the arcs we want to store include:

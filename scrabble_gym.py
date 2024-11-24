@@ -58,7 +58,7 @@ class ScrabbleEnv(gym.Env):
 
     def reset(self):
         self.__init__()
-        return
+        return self.observation_space
 
     def draw_letter(self):
         available_letters = [k for k, v in self.letter_bag.items() if v > 0]
