@@ -66,6 +66,7 @@ board3[0, 6] = 4
 rack1 = np.array([2, 0, 12, 15, 11, 17, 0])
 rack2 = np.array([18, 8])
 rack3 = np.array([19, 14])
+empty_rack = np.array([-1, -1, -1, -1, -1, -1, -1])
 
 def actions_to_words(actions):
   words = []
@@ -79,4 +80,4 @@ def actions_to_words(actions):
 # print(util.is_action_continuous(board0, vertical_action))
 # print(util.get_words_made_by_action(board0, vertical_action)) # should produce: 'BEFGH', 'DE', 'FIN'
 # print(util.get_words_made_by_action(board0, horizontal_action)) # should produce: 'DJKLM', 'BJ', 'CKI', 'LN'
-print(actions_to_words(util.generate_possible_moves(board2, rack2)))
+print(actions_to_words(util.generate_possible_moves(board2, empty_rack)))

@@ -2,13 +2,8 @@ import numpy as np
 from scipy.ndimage import convolve
 from util import WORD_MULTIPLIER_POSITIONS, LETTER_MULTIPLIER_POSITIONS, calculate_score_for_action
 
-def objective_function(alpha, beta, gamma, delta, epsilon, board, action):
-  points_scored_val = points_scored(board, action)
-  weighted_multipliers_val = weighted_multipliers(action)
-  action_use_val = action_use_value(action)
-  multiplier_distance_reduction_val = multiplier_distance_reduction(action)
-  opened_spaces_val = opened_spaces(board, action)
-  return 1 / (alpha * points_scored_val + beta * weighted_multipliers_val + gamma * action_use_val + delta * multiplier_distance_reduction_val + epsilon * opened_spaces_val)
+def objective_function(weights, points_scored_val, weighted_multipliers_val, action_use_val, multiplier_distance_reduction_val, opened_spaces_val):
+  return weights[0] * points_scored_val + weights[1] * weighted_multipliers_val + weights[2] * action_use_val + weights[3] * multiplier_distance_reduction_val + weights[4] * opened_spaces_val
 
 # The literal in game points scored by action
 def points_scored(board, action):
@@ -50,12 +45,15 @@ def action_use_value(action):
 
   return total_use_value
 
+# TODO Update to consider number of moves it would take to reach a mulitplier instead of number of tiles
 # We assume that the opponent can definitely reach 3 spots outwards from any move that we play
 # Should we make this a dynamic measure later on?
 def multiplier_distance_reduction(action, opponent_range=3):
 
   ## HELPER FUNCTIONS ##
   # Euclidean distance between tile and multiplier
+  # TODO is euclidean distance the right metric? 4 tiles away in one direction is 1 move away, 
+  # but that same distance in euclidean distance (or even shorter) is 2 moves away
   def calculate_distance(placement, multiplier_pos):
     return np.sqrt((placement["row"] - multiplier_pos[0]) ** 2 + (placement["col"] - multiplier_pos[1]) ** 2)
 
