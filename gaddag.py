@@ -108,6 +108,30 @@ class Gaddag:
             node.children[int(key)] = Gaddag.dict_to_node(child_dict)
         return node 
 
+    def bridge_gap(gaddag, rack, left, right, gap_size):
+        # Prepare the combined hook
+        # combined_hook = left[::-1] + [Gaddag.Node.BREAK] + right
+
+        combined_hook = (
+        "".join(left[::-1])  # Reverse the left part
+        + chr(Gaddag.Node.BREAK)  # Add the BREAK marker
+        + "".join(right)  # Add the right part
+        )
+
+        # Get all possible words using the GADDAG
+        possible_words = gaddag.find_words(combined_hook, rack)
+
+
+
+        # Filter words that fit the gap size
+        valid_words = [
+            word for word in possible_words
+            if len(word) == len(left) + gap_size + len(right)
+        ]
+
+        return valid_words
+
+
     # Saves a GADDAG as a JSON file
     def save_as_json(self, filepath):
         gaddag_dict = self.to_dict()
