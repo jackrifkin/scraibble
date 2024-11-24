@@ -33,7 +33,7 @@ _ _ A _ E _
 _ _ _ _ _ _
 _ _ _ _ _ _
 '''
-board1 = np.full((6, 6), -1)
+board1 = np.full((util.BOARD_DIM, util.BOARD_DIM), -1)
 board1[3, 2] = 0
 board1[3, 4] = 4
 
@@ -43,7 +43,7 @@ _ _ _ _
 A T _ _
 _ _ _ _
 '''
-board2 = np.full((4, 4) -1)
+board2 = np.full((util.BOARD_DIM, util.BOARD_DIM), -1)
 board2[0, 0] = 0
 board2[2, 0] = 0
 board2[2, 1] = 19
@@ -58,7 +58,7 @@ _ _ _ _ _ _ _ _
 _ _ _ _ _ _ _ _
 _ _ _ _ _ _ _ _
 '''
-board3 = np.full((8, 8), -1)
+board3 = np.full((util.BOARD_DIM, util.BOARD_DIM), -1)
 board3[0, 2] = 0
 board3[0, 3] = 15
 board3[0, 6] = 4
@@ -66,7 +66,17 @@ board3[0, 6] = 4
 rack1 = np.array([2, 0, 12, 15, 11, 17, 0])
 rack2 = np.array([18, 8])
 rack3 = np.array([19, 14])
+
+def actions_to_words(actions):
+  words = []
+  for action in actions:
+    word = ''
+    for letter in action:
+      word += util.char_idx_to_char(letter["tile"])
+    words.append(word)
+  return words
  
-print(util.is_action_continuous(board0, vertical_action))
-print(util.get_words_made_by_action(board0, vertical_action)) # should produce: 'BEFGH', 'DE', 'FIN'
-print(util.get_words_made_by_action(board0, horizontal_action)) # should produce: 'DJKLM', 'BJ', 'CKI', 'LN'
+# print(util.is_action_continuous(board0, vertical_action))
+# print(util.get_words_made_by_action(board0, vertical_action)) # should produce: 'BEFGH', 'DE', 'FIN'
+# print(util.get_words_made_by_action(board0, horizontal_action)) # should produce: 'DJKLM', 'BJ', 'CKI', 'LN'
+print(actions_to_words(util.generate_possible_moves(board2, rack2)))
