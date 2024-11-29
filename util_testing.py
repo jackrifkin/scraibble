@@ -120,6 +120,8 @@ word_validation_tests = []
 # print(util.get_words_made_by_action(board0, vertical_action)) # should produce: 'BEFGH', 'DE', 'FIN'
 # print(util.get_words_made_by_action(board0, horizontal_action)) # should produce: 'DJKLM', 'BJ', 'CKI', 'LN'
 # actions_to_boards(board2, util.generate_possible_moves(board2, rack4, cross_sets2))
+
+# NOTE: update filename in new_gaddag.py to TESTWORDS.txt instead of SOWPODS.txt before running
 word_validation_tests.append(("hello", True))
 word_validation_tests.append(("olleh", False))
 word_validation_tests.append(("olle", False))
