@@ -1,11 +1,12 @@
 DELIM = '>' # separates reversed suffixes from prefixes in GADDAG
+END_WORD_DELIM = '*'
 
 class Arc:
     ## essentially represents a path in the GADDAG
 
     __slots__ = "character", "destination"
     
-    def __init__(self, character, destination):
+    def __init__(self, character, destination = None):
         self.character = character
         if not destination:
             destination = State()
@@ -47,16 +48,14 @@ class State:
     def add_arc(self, character: str, destination: "State" = None) -> "State":
         if character not in self.arcs:
             self.arcs[character] = Arc(character, destination)
-        elif not self.arcs[character].destination:
-            self.arcs[character].destination = destination or State()
+        self.letter_set.add(character)
         return self.get_next(character)
     
     def add_final_arc(self, character: str, final_character: str) -> "State":
         if character not in self.arcs:
-            self.arcs[character] = Arc(character, State())
-        arc = self.arcs[character]
-        arc.destination.add_to_letter_set(final_character)
-        return arc.destination
+            self.arcs[character] = Arc(character)
+        self.get_next(character).letter_set.add(final_character)
+        return self.get_next(character)
 
     # gets the next node that this character leads to, which is a State
     def get_next(self, character):
@@ -83,25 +82,18 @@ class Gaddag:
     __slots__ = "_root" # the root State of the GADDAG
 
     def __init__(self):
-        # self._root = None
-        self._root = State()
-        self._root = self.construct_from_txt("SOWPODS.txt")
+        self._root = Gaddag.construct_root_from_txt("SOWPODS.txt")
         print('\n\nInitialized GADDAG...\n\n')
 
     # string input representing a filepath
-    @classmethod
-    def construct_from_txt(cls, filepath):
+    @staticmethod
+    def construct_root_from_txt(filepath):
         root = State()
-        count = 0
         with open(filepath, "r") as file:
             for line in file:
                 word = line.strip()
                 word = word.upper()
                 Gaddag.add_word(root, word)
-        
-        for char, arc in root.arcs.items():
-            print(f"Character: {char}, Letter Set: {arc.destination.letter_set}")
-        print(count)
         return root
     
     def root(self):
@@ -109,7 +101,7 @@ class Gaddag:
     
     # takes a string input of word to be added to gaddag
     @staticmethod
-    def add_word(root: "State", word: str):
+    def add_word(root: State, word: str):
         word = word.upper()
         # store a word path with reversed suffix > prefix
         # Example:
@@ -117,24 +109,57 @@ class Gaddag:
         # >WORD, D>WOR, DR>WO, DRO>W, DROW>
         # But we also want to store arcs for all of the combinations of substrings of WORD (so repeat for WOR, ORD, OR, WO, RD)
         state = root
-        # gets from the last character to the third character in the word (inclusive)
-        for c in word[len(word):1:-1]:
-            state = state.add_arc(c) ## TODO - double check if passing in no destination is okay
-        state.add_final_arc(word[1], word[0])
 
-        # gets from the second last character to the first character in the word (ex: ROW for WORD)
-        state = root
-        for c in word[len(word) - 2::-1]:
+        for c in word[len(word):0:-1]:
             state = state.add_arc(c)
-        state.add_final_arc(DELIM, word[-1])
+        state.add_final_arc(word[0], END_WORD_DELIM)
 
-        # for each substring from second to last to first character (reversed)
-        # essentially building in reverse order
-        for i in range(len(word) - 2, 0, -1):
-            destination = state
+        for i in range(len(word)):
+            suffix_reversed = word[i::-1]
+            prefix = word[i + 1:]
+            
+            # Add reversed suffix
             state = root
-            for c in word[i - 1::-1]:
+            for c in suffix_reversed:
                 state = state.add_arc(c)
+            
+            # Add delimiter and prefix
             state = state.add_arc(DELIM)
-            # make state for next iteration at the second to last node, and the destination is this state
-            state.add_arc(word[i], destination) 
+            for c in prefix:
+                state = state.add_arc(c)
+            state.add_arc(END_WORD_DELIM)
+
+    # traverses the GADDAG for the given word, checking if the word is valid
+    def is_word_in_gaddag(self, word: str) -> bool:
+        word = word.upper()
+        
+        for i in range(len(word)):
+            state = self._root
+            
+            # Check reversed prefix
+            for c in word[i::-1]:
+                temp_state = state.get_next(c)
+                if temp_state is None:
+                    break
+                else:
+                    state = temp_state
+            else:
+                # If reversed prefix succeeded, check for delimiter
+                temp_state = state.get_next(DELIM)
+                if temp_state is None:
+                    continue # HERE
+                else:
+                    state = temp_state
+                
+                # Check for suffix
+                for c in word[i + 1:]:
+                    temp_state = state.get_next(c)
+                    if temp_state is None:
+                        break
+                    else:
+                        state = temp_state
+                else:
+                    # If suffix succeeded, check for end of word delimeter
+                    if END_WORD_DELIM in state.letter_set:
+                        return True
+        return False
