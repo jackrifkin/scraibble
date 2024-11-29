@@ -48,7 +48,6 @@ board2 = np.full((util.BOARD_DIM, util.BOARD_DIM), -1)
 # board2[2, 0] = 0
 # board2[2, 1] = 19
 cross_sets2 = np.zeros((util.BOARD_DIM, util.BOARD_DIM, 2, 26), dtype=int) - 1
-cross_sets2[7, 7, util.DIRECTION.ACROSS.value] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
 # cross_sets2[7, 6, util.DIRECTION.ACROSS.value, 0] = 7
 # cross_sets2[7, 6, util.DIRECTION.DOWN.value, 0] = 7
 # board2[1, 1] = 0
@@ -71,8 +70,9 @@ board3[0, 3] = 15
 board3[0, 6] = 4
 
 rack1 = np.array([2, 0, 12, 15, 11, 17, 0])
-rack2 = np.array([18, 19, 0, 15, 11, 4, 3])
-rack3 = np.array([19, 14])
+rack2 = np.array([18, 19, 0, 15, 11, 4, 3]) # STAPLED
+rack3 = np.array([19, 14]) # TO
+rack4 = np.array([22, 14, 17, 3]) # WORD
 empty_rack = np.array([-1, -1, -1, -1, -1, -1, -1])
 
 def action_to_word(action):
@@ -99,19 +99,38 @@ def print_board(board):
 
 def actions_to_boards(board, actions):
   for action in actions:
-    new_board = board.copy()
-    new_board = action_to_grid(new_board, action)
-    print(action_to_word(action))
-    print_board(new_board)
-    print('\n\n')
- 
+    if (len(action) > 1):
+      new_board = board.copy()
+      new_board = action_to_grid(new_board, action)
+      print(f"{action_to_word(action)} {len(action)}")
+      print_board(new_board)
+      print('\n\n')
 
-def testing_gaddag():
-  # util.init_gaddag()
-  print(util.GADDAG.root().letter_set)
-  
-testing_gaddag()
+def word_validation_results(tests):
+  all_passed = True
+  for word, expected_valid in tests:
+    if util.GADDAG.is_word_in_gaddag(word) != expected_valid:
+      all_passed = False
+      print(f"validation for word: '{word}' failed.")
+  if all_passed:
+    print("All word validation tests passed!")
+
+word_validation_tests = []
 # print(util.is_action_continuous(board0, vertical_action))
 # print(util.get_words_made_by_action(board0, vertical_action)) # should produce: 'BEFGH', 'DE', 'FIN'
 # print(util.get_words_made_by_action(board0, horizontal_action)) # should produce: 'DJKLM', 'BJ', 'CKI', 'LN'
-# actions_to_boards(board2, util.generate_possible_moves(board2, rack2, cross_sets2))
+# actions_to_boards(board2, util.generate_possible_moves(board2, rack4, cross_sets2))
+word_validation_tests.append(("hello", True))
+word_validation_tests.append(("olleh", False))
+word_validation_tests.append(("olle", False))
+word_validation_tests.append(("hell", False))
+word_validation_tests.append(("hel", False))
+word_validation_tests.append(("he", False))
+word_validation_tests.append(("h", False))
+word_validation_tests.append(("world", True))
+word_validation_tests.append(("word", True))
+word_validation_tests.append(("worl", False))
+word_validation_tests.append(("wor", False))
+word_validation_tests.append(("wo", False))
+word_validation_tests.append(("w", False))
+word_validation_results(word_validation_tests)

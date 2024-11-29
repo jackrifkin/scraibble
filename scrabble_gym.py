@@ -18,8 +18,6 @@ class ScrabbleEnv(gym.Env):
         self.board = np.full((util.BOARD_DIM, util.BOARD_DIM), -1)  # -1 for empty cells
         self.cross_sets = np.full((util.BOARD_DIM, util.BOARD_DIM, 2, 26), -1, dtype=int)
 
-        self.cross_sets[7, 7, DIRECTION.ACROSS.value] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
-
         # Letter bag setup with 100 tiles in total
         self.letter_bag = {i: 0 for i in range(27)}  # 0 to 25 for A-Z, 26 for blanks
         

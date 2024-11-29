@@ -46,21 +46,14 @@ class DIRECTION(Enum):
 
 GADDAG = g.Gaddag()
 
+# Initialize the GADDAG (creating an instance)
 def init_gaddag():
   GADDAG.construct_from_txt("SOWPODS.txt")
 
 # END CONSTANTS
 
-# Initialize the GADDAG (creating an instance)
-
 def is_valid_word(word):
-  with open("SOWPODS.txt", "r") as file:
-    for line in file:
-      a = line.strip()
-      a = a.upper()
-      if word == a:
-        return True
-  return False
+  return GADDAG.is_word_in_gaddag(word)
 
 def is_action_placement_valid(board, action):
   tile_placements_valid = True
@@ -158,8 +151,6 @@ def calculate_score_for_action(board, action):
   # proposed_words = {'word': [[x,y,4,1], [x,y,6,1], [x,y,6,0], ...], 'word2': [[x,y,6,0], [x,y,4,1], [x,y,19,1], ...]}
   # [row, col, tile, (0 if existing tile, 1 if placed)]
   proposed_words = get_words_made_by_action(board, action)
-
-  print(proposed_words.keys())
 
   # validate each word
   for word in proposed_words.keys():
@@ -303,14 +294,14 @@ def calculate_score_for_word(word):
   return total_score * total_word_multiplier
 
 def offset(coord, direction, offset):
-          res = None
-          if direction == DIRECTION.ACROSS:
-              res = coord[0], coord[1] + offset # offset the column
-          elif direction == DIRECTION.DOWN:
-              res = coord[0] + offset, coord[1] # offset the row
-          else:
-              return TypeError("INVALID DIRECTION SPECIFIED")
-          return res
+    res = None
+    if direction == DIRECTION.ACROSS:
+        res = coord[0], coord[1] + offset # offset the column
+    elif direction == DIRECTION.DOWN:
+        res = coord[0] + offset, coord[1] # offset the row
+    else:
+        return TypeError("INVALID DIRECTION SPECIFIED")
+    return res
 
 def char_idx_to_char(char_idx):
   return "_" if char_idx == 26 else chr(ord("A") + char_idx)
@@ -320,120 +311,113 @@ def char_to_char_idx(char):
     return 26
   return ord(char) - 65 
 
+def pos_in_bounds(pos):
+    row, col = pos
+    return 0 <= row < BOARD_DIM and 0 <= col < BOARD_DIM
+
 def generate_possible_moves(board, rack, cross_sets):
   """
   Generates all possible unique actions (valid word placements) given a board state and a rack of letters.
   Inspired by anchor-based recursive move generation.
+  
+  Logic derived from Steven A. Gordon's "A Faster Scrabble Move Generation Algorithm"
+  https://ericsink.com/downloads/faster-scrabble-gordon.pdf 
 
   :param board: A 2D numpy array representing the Scrabble board state. -1 indicates empty tiles.
   :param rack: A numpy array of integers representing the rack (-1 = emptpy, 0 = A, ..., 25 = Z, 26 = blank).
+  :param cross_sets: A 4D array representing the across and down cross_sets for each tile on the board.
   :return: A list of unique actions, where each action is a list of dictionaries describing tile placements.
             Each dictionary contains 'row', 'col', and 'tile' keys.
-
-  CREDIT: Logic derived from Steven A. Gordon's "A Faster Scrabble Move Generation Algorithm"
-          https://ericsink.com/downloads/faster-scrabble-gordon.pdf 
   """
   actions = []
   anchors_used = set()
 
-  def gen(pos, word, rack, arc, new_tiles, blanks, anchor, direction):
-    """
-    Recursive function to generate moves based on the current position, word, and rack state.
-    """
-    # Create a copy of the rack
+  def gen(pos, word, rack, arc: g.Arc, new_tiles, blanks, anchor, direction):
     rack = rack.copy()
+    current_position = offset(anchor, direction, pos)
+    tile = board[current_position]
 
-    # Calculate the current position on the board
-    if direction == DIRECTION.ACROSS:
-      row, col = anchor[0], anchor[1] + pos
-    else:
-      row, col = anchor[0] + pos, anchor[1]
-
-    if row < 0 or row >= BOARD_DIM or col < 0 or col >= BOARD_DIM:
-      return  # Out of bounds
-
-    tile = board[row][col]
-
-    if tile != -1:  # Tile is occupied
-      new_tiles = new_tiles.copy()
-      go_on(pos, chr(tile + ord('A')), word, rack, arc.get_next(chr(tile + ord('A'))), arc, new_tiles, blanks, anchor, direction)
-
-    elif np.any(rack != -1):  # Explore options from the rack
-      cross_set = cross_sets[row, col] if 0 <= row < BOARD_DIM and 0<= col < BOARD_DIM else list()
+    if tile != -1:
+      go_on(pos, char_idx_to_char(tile), word, rack, arc.get_next(char_idx_to_char(tile)), arc, new_tiles, blanks, anchor, direction)
+    elif np.any(rack != -1):
       other_direction = DIRECTION.ACROSS if direction == DIRECTION.DOWN else DIRECTION.DOWN
-      cross_set = cross_set[other_direction.value]
-
-      for letter in (x for x in set(rack) if x in cross_set):
-        if letter == -1:
-          continue # changed from return
+      cross_set = cross_sets[current_position][other_direction.value]
+      for letter in (x for x in set(rack) if x in cross_set or np.all(cross_set == -1)):
         tmp_rack = rack.copy()
-        letter_idx = np.where(tmp_rack == letter)
-        if letter_idx[0].size == 0:
+        idx_to_remove = np.where(tmp_rack == letter)[0]
+        if idx_to_remove.size > 0:
+          np.delete(tmp_rack, idx_to_remove[0])
+        else:
           raise RuntimeError('Letter rack does not contain letter option')
-        tmp_rack[letter_idx] = -1
         tmp_new_tiles = new_tiles.copy()
-        tmp_new_tiles.append((row, col))
-        go_on(pos, chr(letter + ord('A')), word, tmp_rack, arc.get_next(chr(letter + ord('A'))), arc, tmp_new_tiles, blanks, anchor, direction)
-
-      if 26 in rack: # blank case
-        for letter_char in cross_set:  # Try all valid letters from cross set (x for x in set(string.ascii_uppercase) if x in cross_set)
+        tmp_new_tiles.append(current_position)
+        letter_char = char_idx_to_char(letter)
+        go_on(pos, letter_char, word, tmp_rack, arc.get_next(letter_char), arc, tmp_new_tiles, blanks, anchor, direction)
+      if 26 in rack:
+        for letter in (x for x in set(string.ascii_uppercase) if x in cross_set or np.all(cross_set == -1)):
           tmp_rack = rack.copy()
-          blank_idx = np.where(tmp_rack == 26)[0][0]
-          tmp_rack[blank_idx] = -1
+          idx_to_remove = np.where(tmp_rack == letter)[0]
+          if idx_to_remove.size > 0:
+            np.delete(tmp_rack, idx_to_remove[0])
+          else:
+            raise RuntimeError('Letter rack does not contain letter option')
           tmp_new_tiles = new_tiles.copy()
-          tmp_new_tiles.append((row, col))
+          tmp_new_tiles.append(current_position)
           tmp_blanks = blanks.copy()
-          tmp_blanks.append((row, col))
-
-          # Continue building word
+          tmp_blanks.append(current_position)
+          letter_char = char_idx_to_char(letter)
           go_on(pos, letter_char, word, tmp_rack, arc.get_next(letter_char), arc, tmp_new_tiles, tmp_blanks, anchor, direction)
 
+  def go_on(pos, char, word, rack, new_arc: g.Arc, old_arc: g.Arc, new_tiles, blanks, anchor, direction):
+    directly_left_pos = offset(anchor, direction, pos - 1)
+    directly_right_pos = offset(anchor, direction, pos + 1)
+    right_of_anchor = offset(anchor, direction, 1)
 
-  def go_on(pos, char, word, rack, new_arc, old_arc, new_tiles, blanks, anchor, direction):
-    """
-    Continue extending the word in the given direction.
-    """
-    
-    if direction == DIRECTION.ACROSS:
-      row, col = anchor[0], anchor[1] + pos
-      left_row, left_col = anchor[0], anchor[1] + (pos - 1)
-      right_row, right_col = anchor[0], anchor[1] + (pos + 1)
-      
-    elif direction == DIRECTION.DOWN:
-      row, col = anchor[0] + pos, anchor[1]
-      left_row, left_col = anchor[0] + (pos - 1), anchor[1]
-      right_row, right_col = anchor[0] + (pos + 1), anchor[1]
+    left_unoccupied = not pos_in_bounds(directly_left_pos) or board[directly_left_pos] == -1
+    right_unoccupied = not pos_in_bounds(directly_right_pos) or board[directly_right_pos] == -1
+    far_right_unoccupied = not pos_in_bounds(right_of_anchor) or board[right_of_anchor] == -1
 
-    word = char + word if pos <= 0 else word + char
-
-    if old_arc.letter_set and new_tiles:
-      # Create the action
-      action = [{'row': t[0], 'col': t[1], 'tile': ord(c) - ord('A')} for t, c in zip(new_tiles, word)]
-      
-      # Update tiles that are blanks
-      for i, (r, c) in enumerate(new_tiles):
-        if (r, c) in blanks:
-          action[i]['tile'] = 26
-
-      actions.append(action)
-
-    if new_arc:
-      # Continue left if valid
-      if (0 <= left_row < BOARD_DIM and 0 <= left_col < BOARD_DIM and (left_row, left_col) not in anchors_used and board[left_row][left_col] == -1):
-        gen(pos - 1, word, rack, new_arc, new_tiles, blanks, anchor, direction)
-
-      # Continue right if valid
-      if (0 <= right_row < BOARD_DIM and 0 <= right_col < BOARD_DIM and board[right_row][right_col] == -1):
+    if pos <= 0: # moving left
+      word = char + word
+      if char in old_arc.letter_set and left_unoccupied and far_right_unoccupied and new_tiles:
+        if is_valid_word(word):
+          action = build_action(pos, anchor, direction, word, new_tiles, blanks)
+          # add action to possible actions
+          actions.append(action)
+      if new_arc:
+        if pos_in_bounds(directly_left_pos) and directly_left_pos not in anchors_used:
+          gen(pos - 1, word, rack, new_arc, new_tiles, blanks, anchor, direction)
+        new_arc = new_arc.get_next(g.DELIM)
+        if new_arc and left_unoccupied and pos_in_bounds(right_of_anchor):
+          gen(1, word, rack, new_arc, new_tiles, blanks, anchor, direction) # add delimeter, switch directions
+    else: # moving right
+      word = word + char
+      if char in old_arc.letter_set and right_unoccupied and new_tiles:
+        if is_valid_word(word):
+          action = build_action(pos, anchor, direction, word, new_tiles, blanks)
+          # add action to possible actions
+          actions.append(action)
+      if new_arc and pos_in_bounds(directly_right_pos):
         gen(pos + 1, word, rack, new_arc, new_tiles, blanks, anchor, direction)
-  
 
-  # Anchor-based recursive move generation
-  anchors = get_anchors(board) 
+  def build_action(pos, anchor, direction, word, new_tiles, blanks):
+    current_tile = offset(anchor, direction, pos)
+    action = []
+    for i in range(len(word)):
+      if current_tile in new_tiles:
+        action.append({'row': current_tile[0], 'col': current_tile[1], 'tile': char_to_char_idx(word[i])})
+      elif current_tile in blanks:
+        action.append({'row': current_tile[0], 'col': current_tile[1], 'tile': 26})
+      current_tile = offset(current_tile, direction, 1)
+
+    return action
+  
+  anchors = get_anchors(board)
 
   for anchor in anchors:
-    for direction in DIRECTION:  # Horizontal and vertical, we have enum so we can change
-      initial_arc = g.Arc("", GADDAG.root())  # Arc logic, also might need to change 
-      gen(0, "", rack.copy(), initial_arc, [], [], anchor, direction) # might need to change based on our implementation
+    for direction in DIRECTION:
+      initial_arc = g.Arc("", GADDAG.root())
+      gen(0, "", rack.copy(), initial_arc, [], [], anchor, direction)
 
   return actions
 
@@ -442,6 +426,7 @@ def get_anchors(board):
   rows, cols = BOARD_DIM, BOARD_DIM
 
   mid_square_idx = 7
+  # if center square is open, center is the only anchor
   if board[mid_square_idx, mid_square_idx] == -1:
     return [(mid_square_idx, mid_square_idx)]
   for row in range(rows):
