@@ -9,6 +9,7 @@ def pick_action(weights, state):
     board = state["board"]
     possible_actions = u.generate_possible_moves(board, state["letter_rack"], state["cross_sets"])
     possible_actions = [action for action in possible_actions if len(action) > 1]
+    print(f"Possible actions: {possible_actions}") # REMOVE
     best_action = None
     best_action_heuristic = -1
     best_action_factors = np.zeros(5)
@@ -53,6 +54,7 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
     epsilon = 1
 
     for _ in range(epochs):
+        print("in next epoch") # REMOVE
         state = env.reset()
         done = False
 
@@ -70,23 +72,31 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
 
         while not done:
             # choose action for player 1
+            print("picking action for player 1")
             action1, action_factors1 = pick_action(weights1, state)
-            
-            # add to heuristic factor sum for player 1
-            factor_sums1 += action_factors1
-            
-            # perform player 1 action
-            state, score1, done, _ = env.step(action1)
+
+            if action1:
+                # add to heuristic factor sum for player 1
+                factor_sums1 += action_factors1
+                
+                # perform player 1 action
+                state, score1, done, _ = env.step(action1)
+
             print(env.render()) # TODO: remove
 
             # choose action for player 2
             action2, action_factors2 = pick_action(weights2, state)
+            if action2: 
+                
+                # add to heuristic factor sum for player 2
+                factor_sums2 += action_factors2
             
-            # add to heuristic factor sum for player 2
-            factor_sums2 += action_factors2
+                # perform player 2 action
+                state, score2, done, _ = env.step(action2)
             
-            # perform player 2 action
-            state, score2, done, _ = env.step(action2)
+            if not action1 and not action2: # neither player has moves left, so we end the game
+                done = True
+
             print(env.render()) # TODO: remove
             
         # decay epsilon

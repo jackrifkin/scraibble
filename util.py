@@ -155,7 +155,8 @@ def calculate_score_for_action(board, action):
   # validate each word
   for word in proposed_words.keys():
     if not is_valid_word(word):
-      raise ValueError('Invalid word: ' + word)
+      return -1000000 # TODO - does returning a negative value dissuade the model from choosing this word?
+      # raise ValueError('Invalid word: ' + word)
 
   # calculate score
   total_score = 0
