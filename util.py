@@ -346,7 +346,7 @@ def generate_possible_moves(board, rack, cross_sets):
         tmp_rack = rack.copy()
         idx_to_remove = np.where(tmp_rack == letter)[0]
         if idx_to_remove.size > 0:
-          np.delete(tmp_rack, idx_to_remove[0])
+          tmp_rack[idx_to_remove[0]] = -1
         else:
           raise RuntimeError('Letter rack does not contain letter option')
         tmp_new_tiles = new_tiles.copy()
@@ -358,7 +358,7 @@ def generate_possible_moves(board, rack, cross_sets):
           tmp_rack = rack.copy()
           idx_to_remove = np.where(tmp_rack == letter)[0]
           if idx_to_remove.size > 0:
-            np.delete(tmp_rack, idx_to_remove[0])
+            tmp_rack[idx_to_remove[0]] = -1
           else:
             raise RuntimeError('Letter rack does not contain letter option')
           tmp_new_tiles = new_tiles.copy()

@@ -274,23 +274,32 @@ class ScrabbleEnv(gym.Env):
             letter_multiplier = util.LETTER_MULTIPLIER_POSITIONS.get((i, j))
             word_multiplier = util.WORD_MULTIPLIER_POSITIONS.get((i, j))
             if cell_value != -1:  # letter is placed
-                return util.char_idx_to_char(cell_value)
+                return f"\033[91m {util.char_idx_to_char(cell_value)} \033[0m"
             elif letter_multiplier is not None and letter_multiplier != 0:  # letter multiplier cell
-                return "DL" if letter_multiplier == 2 else "TL"
+                return "DL " if letter_multiplier == 2 else "TL "
             elif word_multiplier is not None and word_multiplier != 0:  # word multiplier cell
-                return "DW" if word_multiplier == 2 else "TW"
+                return "DW " if word_multiplier == 2 else "TW "
             else:
-                return " "  # empty cell
+                # TODO: this whole else block should just be `return "   "` (the rest is for debugging)
+                if np.all(self.cross_sets[i, j][DIRECTION.ACROSS.value] == -1) and np.all(self.cross_sets[i, j][DIRECTION.DOWN.value] == -1):
+                    return "   "  # empty cell
+                else:
+                    num_across_chars = (self.cross_sets[i, j][DIRECTION.ACROSS.value] != -1).sum()
+                    num_down_chars = (self.cross_sets[i, j][DIRECTION.DOWN.value] != -1).sum()
+                    if num_across_chars < 10 and num_down_chars < 10:
+                        return f"{num_across_chars} {num_down_chars}"
+                    else:
+                        return f"{num_across_chars}{num_down_chars}"
 
         # Print top border
-        print("   " + "  ".join([f"{i:2}" for i in range(util.BOARD_DIM)]))
-        print("  +" + "---+" * util.BOARD_DIM)
+        print("    " + "    ".join([f"{i:2}" for i in range(util.BOARD_DIM)]))
+        print("  +" + "-----+" * util.BOARD_DIM)
 
         # Print board rows with grid lines
         for i in range(util.BOARD_DIM):
             row_display = [cell_to_char(i, j) for j in range(util.BOARD_DIM)]
             print(f"{i:2}| " + " | ".join(row_display) + " |")
-            print("  +" + "---+" * util.BOARD_DIM)  # row separator
+            print("  +" + "-----+" * util.BOARD_DIM)  # row separator
 
         # Display the letter rack with character conversion
         current_letter_rack = self.p1_letter_rack if self.current_player == 0 else self.p2_letter_rack

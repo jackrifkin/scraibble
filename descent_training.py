@@ -13,6 +13,7 @@ def pick_action(weights, state):
     best_action_heuristic = -1
     best_action_factors = np.zeros(5)
 
+    # TODO: just for debugging, remove
     rack_str = ''
     for letter in state["letter_rack"]:
         rack_str += u.char_idx_to_char(letter)
@@ -76,6 +77,7 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
             
             # perform player 1 action
             state, score1, done, _ = env.step(action1)
+            print(env.render()) # TODO: remove
 
             # choose action for player 2
             action2, action_factors2 = pick_action(weights2, state)
@@ -85,6 +87,7 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
             
             # perform player 2 action
             state, score2, done, _ = env.step(action2)
+            print(env.render()) # TODO: remove
             
         # decay epsilon
         epsilon *= decay_rate
