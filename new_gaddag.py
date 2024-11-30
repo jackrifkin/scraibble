@@ -96,6 +96,7 @@ class Gaddag:
                 Gaddag.add_word(root, word)
         return root
     
+    @property
     def root(self):
         return self._root
     

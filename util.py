@@ -315,6 +315,11 @@ def pos_in_bounds(pos):
     row, col = pos
     return 0 <= row < BOARD_DIM and 0 <= col < BOARD_DIM
 
+def create_cross_set_np_array(cross_set):
+  result = np.zeros(26) - 1
+  result[:len(cross_set)] = cross_set[:26]
+  return result
+
 def generate_possible_moves(board, rack, cross_sets):
   """
   Generates all possible unique actions (valid word placements) given a board state and a rack of letters.
@@ -416,7 +421,7 @@ def generate_possible_moves(board, rack, cross_sets):
 
   for anchor in anchors:
     for direction in DIRECTION:
-      initial_arc = g.Arc("", GADDAG.root())
+      initial_arc = g.Arc("", GADDAG.root)
       gen(0, "", rack.copy(), initial_arc, [], [], anchor, direction)
 
   return actions
