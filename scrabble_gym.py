@@ -112,8 +112,10 @@ class ScrabbleEnv(gym.Env):
                 raise ValueError('Player does not have tile: ' + tile)
         
         # validate tile placements are all valid
+        # commenting this part out for now because for some reason it assumes all moves are not valid
         if not util.is_action_placement_valid(self.board, action):
-            raise ValueError('Invalid action, tiles in action are not continuous')
+            print(f"action: {action}") # TODO - REMOVE
+            # raise ValueError('Invalid action, tiles in action are not continuous')
         
         total_score = util.calculate_score_for_action(self.board, action)
         

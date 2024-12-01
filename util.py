@@ -56,6 +56,9 @@ def is_valid_word(word):
   return GADDAG.is_word_in_gaddag(word)
 
 def is_action_placement_valid(board, action):
+  if len(action) <= 0:
+    return False
+  
   tile_placements_valid = True
   for tile_placement in action:
     row = tile_placement["row"]
@@ -103,6 +106,9 @@ def is_tile_placement_valid(board, row, col, action):
 # checks if all tile placements in the action are either all in the same row or all in the same col
 # and if they form an unbroken continuous word
 def is_action_continuous(board, action):
+  if len(action) <= 0:
+    return False
+  
   rows = np.array([tile["row"] for tile in action])
   cols = np.array([tile["col"] for tile in action])
   
@@ -333,7 +339,7 @@ def generate_possible_moves(board, rack, cross_sets):
   actions = []
   anchors_used = set()
 
-  def gen(pos, word, rack, arc: g.Arc, new_tiles, blanks, anchor, direction):
+  def gen(pos, word, rack, arc: g.Arc, new_tiles, blanks, anchor, direction, board=board.copy()):
     rack = rack.copy()
     current_position = offset(anchor, direction, pos)
     tile = board[current_position]
@@ -369,7 +375,7 @@ def generate_possible_moves(board, rack, cross_sets):
           letter_char = char_idx_to_char(letter)
           go_on(pos, letter_char, word, tmp_rack, arc.get_next(letter_char), arc, tmp_new_tiles, tmp_blanks, anchor, direction)
 
-  def go_on(pos, char, word, rack, new_arc: g.Arc, old_arc: g.Arc, new_tiles, blanks, anchor, direction):
+  def go_on(pos, char, word, rack, new_arc: g.Arc, old_arc: g.Arc, new_tiles, blanks, anchor, direction, board=board.copy()):
     directly_left_pos = offset(anchor, direction, pos - 1)
     directly_right_pos = offset(anchor, direction, pos + 1)
     right_of_anchor = offset(anchor, direction, 1)
@@ -384,7 +390,8 @@ def generate_possible_moves(board, rack, cross_sets):
         if is_valid_word(word):
           action = build_action(pos, anchor, direction, word, new_tiles, blanks)
           # add action to possible actions
-          actions.append(action)
+          if is_action_placement_valid(board, action):
+            actions.append(action)
       if new_arc:
         if pos_in_bounds(directly_left_pos) and directly_left_pos not in anchors_used:
           gen(pos - 1, word, rack, new_arc, new_tiles, blanks, anchor, direction)
@@ -397,7 +404,8 @@ def generate_possible_moves(board, rack, cross_sets):
         if is_valid_word(word):
           action = build_action(pos, anchor, direction, word, new_tiles, blanks)
           # add action to possible actions
-          actions.append(action)
+          if is_action_placement_valid(board, action):
+            actions.append(action)
       if new_arc and pos_in_bounds(directly_right_pos):
         gen(pos + 1, word, rack, new_arc, new_tiles, blanks, anchor, direction)
 
