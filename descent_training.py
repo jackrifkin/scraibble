@@ -3,33 +3,25 @@ import gym
 import model as m
 import new_gaddag as g
 import util as u
+import util_testing as ut
 from scrabble_gym import ScrabbleEnv
 
 def pick_action(weights, state):
     board = state["board"]
-    print(f"the board in our current state is: {board}")
     possible_actions = u.generate_possible_moves(board.copy(), state["letter_rack"], state["cross_sets"])
     possible_actions = [action for action in possible_actions if len(action) > 1]
     best_action = None
     best_action_heuristic = -1
     best_action_factors = np.zeros(5)
 
-    # TODO: just for debugging, remove
-    rack_str = ''
-    for letter in state["letter_rack"]:
-        rack_str += u.char_idx_to_char(letter)
-    print(rack_str)
-
     for action in possible_actions:
         points_scored_val = m.points_scored(board.copy(), action)
-        # TODO: uncomment heuristics
         weighted_multipliers_val = m.weighted_multipliers(action)
         action_use_val = m.action_use_value(action)
         multiplier_distance_reduction_val = m.multiplier_distance_reduction(action)
         opened_spaces_val = m.opened_spaces(board.copy(), action)
 
         heuristic = m.objective_function(weights, points_scored_val, weighted_multipliers_val, action_use_val, multiplier_distance_reduction_val, opened_spaces_val)
-
         if heuristic > best_action_heuristic:
             best_action = action
             best_action_heuristic = heuristic
@@ -38,12 +30,13 @@ def pick_action(weights, state):
             best_action_factors[2] = action_use_val
             best_action_factors[3] = multiplier_distance_reduction_val
             best_action_factors[4] = opened_spaces_val
+            
 
         # TODO: REMOVE
         if points_scored_val > best_action_heuristic:
             best_action = action
             best_action_heuristic = points_scored_val
-    print(best_action)
+    print(best_action, best_action_heuristic)
     return best_action, best_action_factors
     
 def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
@@ -77,18 +70,24 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
             print("picking action for player 1")
             action1, action_factors1 = pick_action(weights1, state)
 
+            score1_update = 0
             if action1:
                 # add to heuristic factor sum for player 1
                 factor_sums1 += action_factors1
                 
                 # perform player 1 action
                 state, score1_update, done, _ = env.step(action1)
-                score1 += score1_update
-
-            print(env.render()) # TODO: remove
+            else: 
+                state, score1_update, done, _ = env.pass_move()
+            
+            score1 += score1_update
+            
 
             # choose action for player 2
+            print("picking action for player 2")
             action2, action_factors2 = pick_action(weights2, state)
+
+            score2_update = 0
             if action2: 
                 
                 # add to heuristic factor sum for player 2
@@ -96,13 +95,15 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
             
                 # perform player 2 action
                 state, score2_update, done, _ = env.step(action2)
-                score2 += score2_update
+            else:
+                state, score2_update, done, _ = env.pass_move()
+
+            score2 += score2_update
             
             if not action1 and not action2: # neither player has moves left, so we end the game
                 done = True
+                print(score1, score2)
 
-            print(env.render()) # TODO: remove
-            
         # decay epsilon
         epsilon *= decay_rate
 
@@ -126,7 +127,8 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
         best_weights2 = best_weights2 / np.sum(best_weights2)
 
         print(env.render())
-    
+    print(f"best weights 1: {best_weights1}")
+    print(f"best weights 2: {best_weights2}")
     return best_weights1, best_weights2
 
 gradient_descent()

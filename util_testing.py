@@ -77,6 +77,8 @@ empty_rack = np.array([-1, -1, -1, -1, -1, -1, -1])
 
 def action_to_word(action):
   word = ''
+  if not action:
+    return word
   for letter in action:
     word += util.char_idx_to_char(letter["tile"])
   return word

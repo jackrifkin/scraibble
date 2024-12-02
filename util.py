@@ -64,7 +64,6 @@ def is_action_placement_valid(board, action):
     if not is_tile_placement_valid(board, row, col, action):
       tile_placements_valid = False
 
-  print(f"tile placements valid? : {tile_placements_valid}")
   return is_action_continuous(board, action) and tile_placements_valid
 
 # checks if the given row and col are adjacent to an existing tile or a different tile from the action

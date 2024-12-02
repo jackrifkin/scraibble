@@ -100,6 +100,22 @@ class ScrabbleEnv(gym.Env):
             "letter_rack": self.p1_letter_rack if self.current_player == 0 else self.p2_letter_rack,
             "current_player": self.current_player
         }
+    
+    def pass_move(self):
+        isDone = self.is_game_over()
+
+        if isDone:
+            if np.all(self.p1_letter_rack == -1):
+                # subtract value of remaining letters from p2's letter rack
+                self.p2_score -= np.sum(self.p2_letter_rack[self.p2_letter_rack != -1])
+            else:
+                # subtract value of remaining letters from p1's letter rack
+                self.p1_score -= np.sum(self.p1_letter_rack[self.p1_letter_rack != -1])
+
+        # rotate player
+        self.current_player = 1 - self.current_player
+        
+        return self.get_observation(), 0, isDone, {}
 
     def step(self, action):
         if len(action) == 0:
@@ -154,6 +170,7 @@ class ScrabbleEnv(gym.Env):
         self.current_player = 1 - self.current_player
         
         return self.get_observation(), total_score, isDone, {}
+        
     
     def update_all_crosssets_affected_by_move(self, start_coordinate, direction, dictionary):
         # down crosssets of tile at (7,7): crosssets[7,7]["down"]
