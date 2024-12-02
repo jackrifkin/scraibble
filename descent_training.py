@@ -5,6 +5,9 @@ import new_gaddag as g
 import util as u
 from scrabble_gym import ScrabbleEnv
 import matplotlib.pyplot as plt
+import torch
+import torch.nn.functional as F
+import time
 
 def pick_action_greedy(state):
     board = state["board"]
@@ -98,6 +101,7 @@ def plot_score_diff(score_diff_history, epochs):
     plt.show()
 
 def gradient_descent(epochs=10000, decay_rate=0.9999, lr=0.001):
+    startTime = time.time()
     env = ScrabbleEnv()
 
     best_weights = np.ones(5) / 5 # initialize weights evenly
@@ -165,25 +169,28 @@ def gradient_descent(epochs=10000, decay_rate=0.9999, lr=0.001):
         epsilon *= decay_rate
 
         # calculate episode score diff for model
-        episode_score_diff1 = score1 - score2
+        episode_score_diff = score1 - score2
         
         # Compute gradients with respect to each weight, update best_weights
-        for i in range(len(factor_sums)):
-            grad_i = episode_score_diff1 * weights[i] * lr
-            best_weights[i] += grad_i
-        # normalize weights
-        best_weights = best_weights / np.sum(best_weights)
+        weights_tensor = torch.tensor(weights, dtype=torch.float32)
+        factor_sums_tensor = torch.tensor(factor_sums, dtype=torch.float32)
+        
+        gradient = episode_score_diff * factor_sums_tensor * weights_tensor
+        print(gradient)
+        best_weights = torch.tensor(best_weights, dtype=torch.float32) + (gradient * lr)
+        best_weights = F.softmax(best_weights, dim=0).numpy()
         
         # store the weights
         weights_per_epoch[e] = best_weights
         # store the win rate
         winning_rate_history[e] = player_1_winning_rate / (e + 1)
 
-        score_diff_history[e] = episode_score_diff1
+        score_diff_history[e] = episode_score_diff
 
         print(env.render())
         print(f"weights used: {weights}")
     
+    print(time.time() - startTime)
     plot_weights(weights_per_epoch, epochs)
     plot_winning_rate(winning_rate_history, epochs)
     plot_score_diff(score_diff_history, epochs)
