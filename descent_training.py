@@ -39,7 +39,7 @@ def pick_action(weights, state):
         action_use_val = m.action_use_value(action)
         multiplier_distance_reduction_val = m.multiplier_distance_reduction(action)
         opened_spaces_val = m.opened_spaces(board.copy(), action)
-
+        
         heuristic = m.objective_function(weights, points_scored_val, weighted_multipliers_val, action_use_val, multiplier_distance_reduction_val, opened_spaces_val)
         if heuristic > best_action_heuristic:
             best_action = action
@@ -52,12 +52,14 @@ def pick_action(weights, state):
     print(ut.action_to_word(best_action))
     return best_action, best_action_factors
     
-def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
+def gradient_descent(epochs=10, decay_rate=0.99, lr=0.001):
     env = ScrabbleEnv()
 
     best_weights = np.ones(5) / 5 # initialize weights evenly
     # best_weights2 = np.ones(5) / 5 NOT NEEDED FOR ONE MODEL TRAINING
     epsilon = 1
+
+    player_1_winning_rate = 0
 
     for _ in range(epochs):
         state = env.reset()
@@ -110,6 +112,10 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
                 done = True
                 print(score1, score2)
 
+        # update winning rate
+        if score1 > score2:
+            player_1_winning_rate += 1 
+
         # decay epsilon
         epsilon *= decay_rate
 
@@ -118,7 +124,7 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
         
         # Compute gradients with respect to each weight, update best_weights
         for i in range(len(factor_sums)):
-            grad_i = episode_score_diff1 * weights[i] * factor_sums[i] * lr
+            grad_i = episode_score_diff1 * weights[i] * lr
             best_weights[i] += grad_i
         # normalize weights
         best_weights = best_weights / np.sum(best_weights)
@@ -127,6 +133,7 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
         print(f"weights used: {weights}")
     print(f"best weights: {best_weights}")
     print(f"factor sums: {factor_sums}")
+    print(f"player one winning rate: {player_1_winning_rate / epochs}")
     return best_weights
 
 gradient_descent()

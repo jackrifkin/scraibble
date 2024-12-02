@@ -6,8 +6,11 @@ def objective_function(weights, points_scored_val, weighted_multipliers_val, act
   return weights[0] * points_scored_val + weights[1] * weighted_multipliers_val + weights[2] * action_use_val + weights[3] * multiplier_distance_reduction_val + weights[4] * opened_spaces_val
 
 # The literal in game points scored by action
+# May throw exception if action is not valid
 def points_scored(board, action):
-  return calculate_score_for_action(board, action)
+  score = calculate_score_for_action(board, action)
+  
+  return score / 400 # arbitrary 'magic number' on the highest score a move can score (based on caziques)
   
 # Sum of multipliers used, weighted by their multiplier and if they are for words or letters, 
 # for the heuristic value of taking them away from the opponent
@@ -113,7 +116,11 @@ def opened_spaces(board, action):
   
   new_empty_adjacent_tiles = calculate_empty_adjacent_tiles(board)
 
-  return new_empty_adjacent_tiles - initial_empty_adjacent_tiles
+  if initial_empty_adjacent_tiles == 0:
+     initial_empty_adjacent_tiles = 4 # assumes that the board is empty and one tile can be placed (with 4 adjacent neighbors)
+
+  res = (new_empty_adjacent_tiles - initial_empty_adjacent_tiles) / new_empty_adjacent_tiles
+  return res if res > 0 else 0
 
 def calculate_empty_adjacent_tiles(board):
   # Adjacency kernel
