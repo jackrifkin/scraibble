@@ -23,21 +23,21 @@ def pick_action(weights, state):
     for action in possible_actions:
         points_scored_val = m.points_scored(board, action)
         # TODO: uncomment heuristics
-        # weighted_multipliers_val = m.weighted_multipliers(action)
-        # action_use_val = m.action_use_value(action)
-        # multiplier_distance_reduction_val = m.multiplier_distance_reduction(action)
-        # opened_spaces_val = m.opened_spaces(board, action)
+        weighted_multipliers_val = m.weighted_multipliers(action)
+        action_use_val = m.action_use_value(action)
+        multiplier_distance_reduction_val = m.multiplier_distance_reduction(action)
+        opened_spaces_val = m.opened_spaces(board, action)
 
-        # heuristic = m.objective_function(weights, points_scored_val, weighted_multipliers_val, action_use_val, multiplier_distance_reduction_val, opened_spaces_val)
+        heuristic = m.objective_function(weights, points_scored_val, weighted_multipliers_val, action_use_val, multiplier_distance_reduction_val, opened_spaces_val)
 
-        # if heuristic > best_action_heuristic:
-        #     best_action = action
-        #     best_action_heuristic = heuristic
-        #     best_action_factors[0] = points_scored_val
-        #     best_action_factors[1] = weighted_multipliers_val
-        #     best_action_factors[2] = action_use_val
-        #     best_action_factors[3] = multiplier_distance_reduction_val
-        #     best_action_factors[4] = opened_spaces_val
+        if heuristic > best_action_heuristic:
+            best_action = action
+            best_action_heuristic = heuristic
+            best_action_factors[0] = points_scored_val
+            best_action_factors[1] = weighted_multipliers_val
+            best_action_factors[2] = action_use_val
+            best_action_factors[3] = multiplier_distance_reduction_val
+            best_action_factors[4] = opened_spaces_val
 
         # TODO: REMOVE
         if points_scored_val > best_action_heuristic:
@@ -70,6 +70,9 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
         factor_sums1 = np.zeros(5)
         factor_sums2 = np.zeros(5)
 
+        score1 = 0 
+        score2 = 0
+
         while not done:
             # choose action for player 1
             print("picking action for player 1")
@@ -80,7 +83,8 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
                 factor_sums1 += action_factors1
                 
                 # perform player 1 action
-                state, score1, done, _ = env.step(action1)
+                state, score1_update, done, _ = env.step(action1)
+                score1 += score1_update
 
             print(env.render()) # TODO: remove
 
@@ -92,7 +96,8 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
                 factor_sums2 += action_factors2
             
                 # perform player 2 action
-                state, score2, done, _ = env.step(action2)
+                state, score2_update, done, _ = env.step(action2)
+                score2 += score2_update
             
             if not action1 and not action2: # neither player has moves left, so we end the game
                 done = True
@@ -103,8 +108,9 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
         epsilon *= decay_rate
 
         # calculate episode score diff for each player
-        episode_score_diff1 = (score1 - score2) / (score1 + score2)
-        episode_score_diff2 = -episode_score_diff1 / (score1 + score2)
+        total_score = (score1 + score2) if score1 + score2 > 0 else 1
+        episode_score_diff1 = (score1 - score2) / total_score
+        episode_score_diff2 = -episode_score_diff1 
         
         # Compute gradients with respect to each weight, update best_weights
         for i in range(len(factor_sums1)):
