@@ -5,6 +5,19 @@ import new_gaddag as g
 import util as u
 from scrabble_gym import ScrabbleEnv
 
+def pick_action_greedy(state):
+    board = state["board"]
+    possible_actions = u.generate_possible_moves(board, state["letter_rack"], state["cross_sets"])
+    possible_actions = [action for action in possible_actions if len(action) > 1]
+    best_action = None
+
+    for action in possible_actions:
+        points_scored = m.points_scored(board, action)
+        if points_scored > best_action:
+            best_action = action
+
+    return best_action
+
 def pick_action(weights, state):
     board = state["board"]
     possible_actions = u.generate_possible_moves(board, state["letter_rack"], state["cross_sets"])
@@ -48,8 +61,8 @@ def pick_action(weights, state):
 def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
     env = ScrabbleEnv()
 
-    best_weights1 = np.ones(5) / 5 # initialize weights evenly
-    best_weights2 = np.ones(5) / 5
+    best_weights = np.ones(5) / 5 # initialize weights evenly
+    # best_weights2 = np.ones(5) / 5 NOT NEEDED FOR ONE MODEL TRAINING
     epsilon = 1
 
     for _ in range(epochs):
@@ -58,32 +71,32 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
 
         if np.random.rand() < epsilon:
             # use random weights
-            weights1 = np.random.dirichlet(np.ones(5))
-            weights2 = np.random.dirichlet(np.ones(5))
+            weights = np.random.dirichlet(np.ones(5))
+            # weights2 = np.random.dirichlet(np.ones(5)) NOT NEEDED FOR ONE MODEL TRAINING
         else:
             # use optimal weights
-            weights1 = best_weights1
-            weights2 = best_weights2
+            weights = best_weights
+            # weights2 = best_weights2 NOT NEEDED FOR ONE MODEL TRAINING
 
-        factor_sums1 = np.zeros(5)
-        factor_sums2 = np.zeros(5)
+        factor_sums = np.zeros(5)
+        # factor_sums2 = np.zeros(5) NOT NEEDED FOR ONE MODEL TRAINING
 
         while not done:
             # choose action for player 1
-            action1, action_factors1 = pick_action(weights1, state)
+            action1, action_factors1 = pick_action(weights, state)
             
             # add to heuristic factor sum for player 1
-            factor_sums1 += action_factors1
+            factor_sums += action_factors1
             
             # perform player 1 action
             state, score1, done, _ = env.step(action1)
             print(env.render()) # TODO: remove
 
             # choose action for player 2
-            action2, action_factors2 = pick_action(weights2, state)
+            action2, _ = pick_action_greedy(state)
             
             # add to heuristic factor sum for player 2
-            factor_sums2 += action_factors2
+            # factor_sums2 += action_factors2 NOT NEEDED FOR ONE MODEL TRAINING
             
             # perform player 2 action
             state, score2, done, _ = env.step(action2)
@@ -94,25 +107,28 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
 
         # calculate episode score diff for each player
         episode_score_diff1 = (score1 - score2) / (score1 + score2)
-        episode_score_diff2 = -episode_score_diff1 / (score1 + score2)
+        # episode_score_diff2 = -episode_score_diff1 / (score1 + score2) NOT NEEDED FOR ONE MODEL TRAINING
         
         # Compute gradients with respect to each weight, update best_weights
-        for i in range(len(factor_sums1)):
-            grad_i = episode_score_diff1 * factor_sums1[i] * lr
-            best_weights1[i] += grad_i
+        for i in range(len(factor_sums)):
+            grad_i = episode_score_diff1 * factor_sums[i] * lr
+            best_weights[i] += grad_i
         # normalize weights
-        best_weights1 = best_weights1 / np.sum(best_weights1)
+        best_weights = best_weights / np.sum(best_weights)
 
+        '''
         # Compute gradients with respect to each weight, update best_weights
         for i in range(len(factor_sums2)):
             grad_i = episode_score_diff2 * factor_sums2[i] * lr
             best_weights2[i] += grad_i
         # normalize weights
         best_weights2 = best_weights2 / np.sum(best_weights2)
+        NOT NEEDED FOR ONE MODEL TRAINING
+        '''
 
         print(env.render())
     
-    return best_weights1, best_weights2
+    return best_weights
 
 gradient_descent()
 
