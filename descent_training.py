@@ -27,13 +27,17 @@ def pick_action(weights, state):
     best_action_factors = np.zeros(5)
 
     # TODO: just for debugging, remove
-    rack_str = ''
-    for letter in state["letter_rack"]:
-        rack_str += u.char_idx_to_char(letter)
-    print(rack_str)
+    # rack_str = ''
+    # for letter in state["letter_rack"]:
+    #     rack_str += u.char_idx_to_char(letter)
+    # print(rack_str)
 
     for action in possible_actions:
-        points_scored_val = m.points_scored(board, action)
+        try:
+            points_scored_val = m.points_scored(board, action)
+        except ValueError as e:
+            # action is invalid, skip
+            continue
         # TODO: uncomment heuristics
         # weighted_multipliers_val = m.weighted_multipliers(action)
         # action_use_val = m.action_use_value(action)
