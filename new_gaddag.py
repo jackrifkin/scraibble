@@ -1,3 +1,6 @@
+import pickle
+import gzip
+
 DELIM = '>' # separates reversed suffixes from prefixes in GADDAG
 END_WORD_DELIM = '*'
 
@@ -95,10 +98,11 @@ class Gaddag:
                 word = word.upper()
                 Gaddag.add_word(root, word)
         return root
-    
+      
     @property
     def root(self):
         return self._root
+    
     
     # takes a string input of word to be added to gaddag
     @staticmethod

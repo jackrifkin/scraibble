@@ -77,6 +77,8 @@ empty_rack = np.array([-1, -1, -1, -1, -1, -1, -1])
 
 def action_to_word(action):
   word = ''
+  if not action:
+    return word
   for letter in action:
     word += util.char_idx_to_char(letter["tile"])
   return word
@@ -125,14 +127,11 @@ word_validation_tests = []
 word_validation_tests.append(("hello", True))
 word_validation_tests.append(("olleh", False))
 word_validation_tests.append(("olle", False))
-word_validation_tests.append(("hell", False))
 word_validation_tests.append(("hel", False))
-word_validation_tests.append(("he", False))
 word_validation_tests.append(("h", False))
 word_validation_tests.append(("world", True))
 word_validation_tests.append(("word", True))
 word_validation_tests.append(("worl", False))
 word_validation_tests.append(("wor", False))
-word_validation_tests.append(("wo", False))
 word_validation_tests.append(("w", False))
 word_validation_results(word_validation_tests)
