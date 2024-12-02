@@ -4,6 +4,7 @@ import model as m
 import new_gaddag as g
 import util as u
 from scrabble_gym import ScrabbleEnv
+import matplotlib.pyplot as plt
 
 def pick_action_greedy(state):
     board = state["board"]
@@ -52,31 +53,74 @@ def pick_action(weights, state):
             best_action_factors[3] = multiplier_distance_reduction_val
             best_action_factors[4] = opened_spaces_val
     return best_action, best_action_factors
+
+def plot_weights(weight_history, num_epochs):
+    weight_labels = {
+        0: 'Points Scored',
+        1: 'Multipliers Used',
+        2: 'Tile Utility Used',
+        3: 'Multiplier Accessibility',
+        4: 'Newly-Opened Spaces'
+    }
+    epochs = np.arange(num_epochs)
     
-def gradient_descent(epochs=10, decay_rate=0.99, lr=0.001):
+    plt.figure(figsize=(10, 6))
+    for i in range(weight_history.shape[1]):
+        plt.plot(epochs, weight_history[:, i], label=weight_labels[i])
+    plt.title("Change in Best Weights Over Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Weight Value")
+    plt.legend()
+    plt.grid()
+    plt.savefig("weights_over_epochs.png")
+    plt.show()
+
+def plot_winning_rate(winrate_history, epochs):
+    epochs = np.arange(epochs)
+    plt.figure()
+    plt.plot(epochs, winrate_history)
+    plt.title("Player 1 Winning Rate Over Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Winning Rate")
+    plt.grid()
+    plt.savefig("winning_rate.png")
+    plt.show()
+
+def plot_score_diff(score_diff_history, epochs):
+    epochs = np.arange(epochs)
+    plt.figure()
+    plt.plot(epochs, score_diff_history)
+    plt.title("Score Difference Over Epochs")
+    plt.xlabel("Epoch")
+    plt.ylabel("Score Difference (Player 1 - Player 2)")
+    plt.grid()
+    plt.savefig("score_diff.png")
+    plt.show()
+
+def gradient_descent(epochs=10000, decay_rate=0.9999, lr=0.001):
     env = ScrabbleEnv()
 
     best_weights = np.ones(5) / 5 # initialize weights evenly
-    # best_weights2 = np.ones(5) / 5 NOT NEEDED FOR ONE MODEL TRAINING
     epsilon = 1
 
     player_1_winning_rate = 0
 
-    for _ in range(epochs):
+    weights_per_epoch = np.zeros((epochs, 5))
+    winning_rate_history = np.zeros(epochs)
+    score_diff_history = np.zeros(epochs)
+
+    for e in range(epochs):
         state = env.reset()
         done = False
 
         if np.random.rand() < epsilon:
             # use random weights
             weights = np.random.dirichlet(np.ones(5))
-            # weights2 = np.random.dirichlet(np.ones(5)) NOT NEEDED FOR ONE MODEL TRAINING
         else:
             # use optimal weights
             weights = best_weights
-            # weights2 = best_weights2 NOT NEEDED FOR ONE MODEL TRAINING
 
         factor_sums = np.zeros(5)
-        # factor_sums2 = np.zeros(5) NOT NEEDED FOR ONE MODEL TRAINING
 
         score1 = 0 
         score2 = 0
@@ -129,9 +173,21 @@ def gradient_descent(epochs=10, decay_rate=0.99, lr=0.001):
             best_weights[i] += grad_i
         # normalize weights
         best_weights = best_weights / np.sum(best_weights)
+        
+        # store the weights
+        weights_per_epoch[e] = best_weights
+        # store the win rate
+        winning_rate_history[e] = player_1_winning_rate / (e + 1)
+
+        score_diff_history[e] = episode_score_diff1
 
         print(env.render())
         print(f"weights used: {weights}")
+    
+    plot_weights(weights_per_epoch, epochs)
+    plot_winning_rate(winning_rate_history, epochs)
+    plot_score_diff(score_diff_history, epochs)
+
     print(f"best weights: {best_weights}")
     print(f"factor sums: {factor_sums}")
     print(f"player one winning rate: {player_1_winning_rate / epochs}")

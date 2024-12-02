@@ -214,7 +214,7 @@ class ScrabbleEnv(gym.Env):
             last_arc = candidate
             state = candidate.destination
             row, col = util.offset(coord, direction, step)
-            while self.board[row, col] != -1:
+            while util.pos_in_bounds((row, col)) and self.board[row, col] != -1:
                 coord = (row, col)
                 tile = util.char_idx_to_char(self.board[coord])
                 last_arc = state.arcs[tile] if tile in state.arcs else None
@@ -275,7 +275,7 @@ class ScrabbleEnv(gym.Env):
             cross_set_indices = map(util.char_to_char_idx, cross_set_characters)
             cross_set = list(cross_set_indices)
             self.cross_sets[left_square][direction.value] = util.create_cross_set_np_array(cross_set)
-        else:
+        elif util.pos_in_bounds(left_square):
             letter_set = last_state.get_arc(curr_char).letter_set if last_state.get_arc(curr_char) else []
             next_state = last_state.get_next(curr_char)
             cross_set = filter(lambda letter: 
@@ -298,7 +298,7 @@ class ScrabbleEnv(gym.Env):
             cross_set_indices = map(util.char_to_char_idx, cross_set_characters)
             cross_set = list(cross_set_indices)
             self.cross_sets[right_square][direction.value] = util.create_cross_set_np_array(cross_set)
-        else:
+        elif util.pos_in_bounds(right_square):
             letter_set = state.get_arc(curr_char).letter_set if state.get_arc(curr_char) else []
             next_state = state.get_next(curr_char)
             cross_set = []

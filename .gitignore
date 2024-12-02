@@ -2,3 +2,4 @@ __pycache__/
 SOWPODS.txt
 Pipfile
 venv/
+*.png
