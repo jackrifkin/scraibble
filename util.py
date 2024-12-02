@@ -155,7 +155,8 @@ def calculate_score_for_action(board, action):
   # validate each word
   for word in proposed_words.keys():
     if not is_valid_word(word):
-      raise ValueError('Invalid word: ' + word)
+      return -10000
+      # raise ValueError('Invalid word: ' + word)
 
   # calculate score
   total_score = 0
@@ -309,6 +310,8 @@ def char_idx_to_char(char_idx):
 def char_to_char_idx(char):
   if char == '_':
     return 26
+  elif char == '>': # Delimeter does not have char idx
+    return -1
   return ord(char) - 65 
 
 def pos_in_bounds(pos):
@@ -336,6 +339,20 @@ def generate_possible_moves(board, rack, cross_sets):
   """
   actions = []
   anchors_used = set()
+
+  # count = 0
+  # for i in range(len(cross_sets)):
+  #   for j in range(len(cross_sets[i])):
+  #     if not np.all(cross_sets[i, j][0] == -1):
+  #       count += 1
+  #       print('Down crossset:')
+  #       print(f"{i} {j} {list(map(char_idx_to_char, cross_sets[i, j][0]))}")
+  #     if not np.all(cross_sets[i, j][1] == -1):
+  #       count += 1
+  #       print('Across crossset:')
+  #       print(f"{i} {j} {list(map(char_idx_to_char, cross_sets[i, j][1]))}")
+  # if not count:
+  #   print('no crosssets....')
 
   def gen(pos, word, rack, arc: g.Arc, new_tiles, blanks, anchor, direction):
     rack = rack.copy()

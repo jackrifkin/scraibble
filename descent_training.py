@@ -14,10 +14,10 @@ def pick_action(weights, state):
     best_action_factors = np.zeros(5)
 
     # TODO: just for debugging, remove
-    rack_str = ''
-    for letter in state["letter_rack"]:
-        rack_str += u.char_idx_to_char(letter)
-    print(rack_str)
+    # rack_str = ''
+    # for letter in state["letter_rack"]:
+    #     rack_str += u.char_idx_to_char(letter)
+    # print(rack_str)
 
     for action in possible_actions:
         points_scored_val = m.points_scored(board, action)
