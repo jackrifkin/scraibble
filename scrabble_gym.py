@@ -19,7 +19,7 @@ class ScrabbleEnv(gym.Env):
         
         # down crosssets of tile at (7,7): crosssets[7,7]["down"]
         # across crosssets of tile at (7,7): crosssets[7,7]["across"]
-        self.cross_sets = np.full((util.BOARD_DIM, util.BOARD_DIM, 2, 26), -1, dtype=int)
+        self.cross_sets = np.tile(np.arange(26, dtype=int), (util.BOARD_DIM, util.BOARD_DIM, 2, 1))
 
         # Letter bag setup with 100 tiles in total
         self.letter_bag = {i: 0 for i in range(27)}  # 0 to 25 for A-Z, 26 for blanks
@@ -261,11 +261,12 @@ class ScrabbleEnv(gym.Env):
             cross_set = list(cross_set_indices)
             self.cross_sets[left_square][direction.value] = util.create_cross_set_np_array(cross_set)
         else:
-            letter_set = last_state.get_arc(curr_char).letter_set
+            letter_set = last_state.get_arc(curr_char).letter_set if last_state.get_arc(curr_char) else []
             next_state = last_state.get_next(curr_char)
             cross_set = filter(lambda letter: 
                                next_state.__contains__(letter)
-                               and next_state.get_next(letter).__contains__(END_WORD_DELIM) if next_state.get_next(letter) else False, 
+                               and next_state.get_arc(letter)
+                               and END_WORD_DELIM in next_state.get_arc(letter).letter_set, 
                                letter_set)
             cross_set = list(map(util.char_to_char_idx, cross_set))
             self.cross_sets[left_square][direction.value] = util.create_cross_set_np_array(cross_set)
@@ -283,15 +284,17 @@ class ScrabbleEnv(gym.Env):
             cross_set = list(cross_set_indices)
             self.cross_sets[right_square][direction.value] = util.create_cross_set_np_array(cross_set)
         else:
-            end_arc = state.get_arc(DELIM)
-            end_state = state.get_next(DELIM)
-            letter_set = end_arc.letter_set if end_arc else []
-            cross_set = filter(lambda letter: 
-                               end_state.__contains__(letter) and 
-                               end_state.get_next(letter).__contains__(END_WORD_DELIM) if end_state.get_next(letter) else False, 
-                               letter_set)
-            cross_set = list(map(util.char_to_char_idx, cross_set))
-            print(f"{curr_char} {cross_set}")
+            letter_set = state.get_arc(curr_char).letter_set if state.get_arc(curr_char) else []
+            next_state = state.get_next(curr_char)
+            cross_set = []
+            if DELIM in letter_set:
+                delim_state = next_state.get_next(DELIM)
+                letter_set = delim_state.letter_set
+                cross_set = filter(lambda letter:
+                                    delim_state.get_arc(letter)
+                                    and END_WORD_DELIM in delim_state.get_arc(letter).letter_set, 
+                                    letter_set)
+                cross_set = list(map(util.char_to_char_idx, cross_set))
             self.cross_sets[right_square][direction.value] = util.create_cross_set_np_array(cross_set)
 
     def current_letter_rack_has_letter(self, letter):
@@ -311,21 +314,12 @@ class ScrabbleEnv(gym.Env):
             word_multiplier = util.WORD_MULTIPLIER_POSITIONS.get((i, j))
             if cell_value != -1:  # letter is placed
                 return f"\033[91m {util.char_idx_to_char(cell_value)} \033[0m"
-            elif letter_multiplier is not None and letter_multiplier != 0:  # letter multiplier cell
-                return "DL " if letter_multiplier == 2 else "TL "
-            elif word_multiplier is not None and word_multiplier != 0:  # word multiplier cell
-                return "DW " if word_multiplier == 2 else "TW "
+            # elif letter_multiplier is not None and letter_multiplier != 0:  # letter multiplier cell
+            #     return "DL " if letter_multiplier == 2 else "TL "
+            # elif word_multiplier is not None and word_multiplier != 0:  # word multiplier cell
+            #     return "DW " if word_multiplier == 2 else "TW "
             else:
-                # TODO: this whole else block should just be `return "   "` (the rest is for debugging)
-                if np.all(self.cross_sets[i, j][DIRECTION.ACROSS.value] == -1) and np.all(self.cross_sets[i, j][DIRECTION.DOWN.value] == -1):
-                    return "   "  # empty cell
-                else:
-                    num_across_chars = (self.cross_sets[i, j][DIRECTION.ACROSS.value] != -1).sum()
-                    num_down_chars = (self.cross_sets[i, j][DIRECTION.DOWN.value] != -1).sum()
-                    if num_across_chars < 10 and num_down_chars < 10:
-                        return f"{num_across_chars} {num_down_chars}"
-                    else:
-                        return f"{num_across_chars}{num_down_chars}"
+                return "   "
 
         # Print top border
         print("    " + "    ".join([f"{i:2}" for i in range(util.BOARD_DIM)]))

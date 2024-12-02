@@ -20,7 +20,11 @@ def pick_action(weights, state):
     # print(rack_str)
 
     for action in possible_actions:
-        points_scored_val = m.points_scored(board, action)
+        try:
+            points_scored_val = m.points_scored(board, action)
+        except ValueError as e:
+            # action is invalid, skip
+            continue
         # TODO: uncomment heuristics
         # weighted_multipliers_val = m.weighted_multipliers(action)
         # action_use_val = m.action_use_value(action)
