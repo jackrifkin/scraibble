@@ -152,9 +152,6 @@ class ScrabbleEnv(gym.Env):
                 self.p1_letter_rack[np.where(self.p1_letter_rack == tile)[0][0]] = -1
             else:
                 self.p2_letter_rack[np.where(self.p2_letter_rack == tile)[0][0]] = -1
-
-        # update cross_sets
-        self.update_all_crosssets_affected_by_move(action)
         
         # refill rack
         self.fill_letter_racks()
