@@ -30,7 +30,11 @@ def pick_action(weights, state):
     best_action_factors = np.zeros(5)
 
     for action in possible_actions:
-        points_scored_val = m.points_scored(board.copy(), action)
+        try:
+            points_scored_val = m.points_scored(board.copy(), action)
+        except ValueError as e:
+            # action is invalid, skip
+            continue
         weighted_multipliers_val = m.weighted_multipliers(action)
         action_use_val = m.action_use_value(action)
         multiplier_distance_reduction_val = m.multiplier_distance_reduction(action)

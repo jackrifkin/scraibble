@@ -305,6 +305,10 @@ def char_idx_to_char(char_idx):
 def char_to_char_idx(char):
   if char == '_':
     return 26
+  elif char == '>': # Delimeter does not have char idx
+    return -1
+  elif char == '*': # End of word delimeter does not have char idx
+    return -1
   return ord(char) - 65 
 
 def pos_in_bounds(pos):
@@ -333,6 +337,20 @@ def generate_possible_moves(board, rack, cross_sets):
   actions = []
   anchors_used = set()
 
+  # count = 0
+  # for i in range(len(cross_sets)):
+  #   for j in range(len(cross_sets[i])):
+  #     if not np.all(cross_sets[i, j][0] == -1):
+  #       count += 1
+  #       print('Down crossset:')
+  #       print(f"{i} {j} {list(map(char_idx_to_char, cross_sets[i, j][0]))}")
+  #     if not np.all(cross_sets[i, j][1] == -1):
+  #       count += 1
+  #       print('Across crossset:')
+  #       print(f"{i} {j} {list(map(char_idx_to_char, cross_sets[i, j][1]))}")
+  # if not count:
+  #   print('no crosssets....')
+
   def gen(pos, word, rack, arc: g.Arc, new_tiles, blanks, anchor, direction):
     rack = rack.copy()
     current_position = offset(anchor, direction, pos)
@@ -343,7 +361,7 @@ def generate_possible_moves(board, rack, cross_sets):
     elif np.any(rack != -1):
       other_direction = DIRECTION.ACROSS if direction == DIRECTION.DOWN else DIRECTION.DOWN
       cross_set = cross_sets[current_position][other_direction.value]
-      for letter in (x for x in set(rack) if x in cross_set or np.all(cross_set == -1)):
+      for letter in (x for x in set(rack) if x in cross_set):
         tmp_rack = rack.copy()
         idx_to_remove = np.where(tmp_rack == letter)[0]
         if idx_to_remove.size > 0:
@@ -355,7 +373,7 @@ def generate_possible_moves(board, rack, cross_sets):
         letter_char = char_idx_to_char(letter)
         go_on(pos, letter_char, word, tmp_rack, arc.get_next(letter_char), arc, tmp_new_tiles, blanks, anchor, direction)
       if 26 in rack:
-        for letter in (x for x in set(string.ascii_uppercase) if x in cross_set or np.all(cross_set == -1)):
+        for letter in (x for x in set(string.ascii_uppercase) if x in cross_set):
           tmp_rack = rack.copy()
           idx_to_remove = np.where(tmp_rack == letter)[0]
           if idx_to_remove.size > 0:

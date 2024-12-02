@@ -1,6 +1,6 @@
 import gym
 from gym import spaces
-from new_gaddag import DELIM
+from new_gaddag import DELIM, END_WORD_DELIM
 import numpy as np
 import random as rand
 import util
@@ -16,7 +16,10 @@ class ScrabbleEnv(gym.Env):
 
         # Initialize the game board
         self.board = np.full((util.BOARD_DIM, util.BOARD_DIM), -1)  # -1 for empty cells
-        self.cross_sets = np.full((util.BOARD_DIM, util.BOARD_DIM, 2, 26), -1, dtype=int)
+        
+        # down crosssets of tile at (7,7): crosssets[7,7]["down"]
+        # across crosssets of tile at (7,7): crosssets[7,7]["across"]
+        self.cross_sets = np.tile(np.arange(26, dtype=int), (util.BOARD_DIM, util.BOARD_DIM, 2, 1))
 
         # Letter bag setup with 100 tiles in total
         self.letter_bag = {i: 0 for i in range(27)}  # 0 to 25 for A-Z, 26 for blanks
@@ -172,23 +175,38 @@ class ScrabbleEnv(gym.Env):
         return self.get_observation(), total_score, isDone, {}
         
     
+    ## can get rightmost (1) or leftmost (-1) letter (depending on step)
+    def get_last_letter(self, start_coordinate, direction, step):
+        curr = start_coordinate
+        next = util.offset(start_coordinate, direction, step)
+        row, col = next[0], next[1]
+        while util.pos_in_bounds((row, col)) and self.board[row, col] != -1:
+            curr = next
+            next = util.offset(curr, direction, step)
+            row, col = next[0], next[1]
+        return curr
+    
     def update_all_crosssets_affected_by_move(self, action):
-        # down crosssets of tile at (7,7): crosssets[7,7]["down"]
-        # across crosssets of tile at (7,7): crosssets[7,7]["across"]
+        # determine direction and start coord of action
+        direction = DIRECTION.ACROSS if all(letter['row'] == action[0]['row'] for letter in action) else DIRECTION.DOWN
+        start_coordinate = self.get_last_letter((action[0]['row'], action[0]['col']), direction, -1)
+        end_coordinate = self.get_last_letter((action[0]['row'], action[0]['col']), direction, 1)
+
+        # update cross_sets on ends of action
+        self.update_cross_set(start_coordinate, direction)
+
+        other_direction = DIRECTION.ACROSS if direction == DIRECTION.DOWN else DIRECTION.DOWN
+        word_length = (end_coordinate[0] - start_coordinate[0] if direction == DIRECTION.DOWN else end_coordinate[1] - start_coordinate[1]) + 1
+        # update cross_sets perpendicular to action
+        for i in range(word_length):
+            delta = (1, 0) if direction == DIRECTION.DOWN else (0, 1)
+            curr_coord = (start_coordinate[0] + delta[0] * i, start_coordinate[1] + delta[1] * i)
+            self.update_cross_set(curr_coord, other_direction)
+
+
+    def update_cross_set(self, start_coordinate, direction):
+        print(f"updating cross set for start coord: {start_coordinate} in direction: {direction}")
         ## helpers:
-        ## can get rightmost (1) or leftmost (-1) letter (depending on step)
-        def get_last_letter(start_coordinate, direction, step):
-            curr = start_coordinate
-            next = util.offset(start_coordinate, direction, step)
-            row = next[0]
-            col = next[1]
-            while self.board[row][col] != -1:
-                curr = next
-                next = util.offset(curr, direction, step)
-                row = next[0]
-                col = next[1]
-            return curr
-        
         ## returns boolean
         def check_candidate(coord, candidate, direction, step):
             last_arc = candidate
@@ -206,46 +224,37 @@ class ScrabbleEnv(gym.Env):
         
         # clears existing crossets next to the word being made
         def clear_existing_crosssets(coord, direction):
-            rightmost_coord = get_last_letter(coord, direction, 1)
+            rightmost_coord = self.get_last_letter(coord, direction, 1)
             right_empty = util.offset(rightmost_coord, direction, 1)
             if (self.board[right_empty[0], right_empty[1]]) == -1:
                 self.cross_sets[right_empty[0], right_empty[1]][direction.value] = np.zeros(26) - 1
 
-            leftmost_coord = get_last_letter(coord, direction, -1)
+            leftmost_coord = self.get_last_letter(coord, direction, -1)
             left_empty = util.offset(leftmost_coord, direction, -1)
             if (self.board[left_empty[0], left_empty[1]]) == -1:
                 self.cross_sets[left_empty[0], left_empty[1]][direction.value] = np.zeros(26) - 1
         
-        # determine direction and start coord of action
-        direction = DIRECTION.ACROSS if all(letter['row'] == action[0]['row'] for letter in action) else DIRECTION.DOWN
-        row, col = action[0]['row'], action[0]['col']
-        delta = (-1, 0) if direction == DIRECTION.DOWN else (0, -1)
-        while util.pos_in_bounds((row + delta[0], col + delta[1])) and self.board[row + delta[0], col + delta[1]] != -1:
-            row += delta[0]
-            col += delta[1]
-        start_coordinate = (row, col)
-        print(start_coordinate, direction)
-
-        if self.board[start_coordinate[0], start_coordinate[1]] is None or self.board[start_coordinate[0], start_coordinate[1]] == -1:
+        if not util.pos_in_bounds(start_coordinate) or self.board[start_coordinate] == -1:
             return # do not do anything
-        end_coordinate = get_last_letter(start_coordinate, direction, 1)
+        end_coordinate = self.get_last_letter(start_coordinate, direction, 1)
 
         curr_coord = end_coordinate
         curr_char = util.char_idx_to_char(self.board[curr_coord])
         last_state = GADDAG.root
         state = last_state.get_next(curr_char)
         next_coord = util.offset(curr_coord, direction, -1)
-        while self.board[next_coord] != 1:
+        while util.pos_in_bounds(next_coord) and self.board[next_coord] != -1:
             curr_coord = next_coord
+            curr_char = util.char_idx_to_char(self.board[curr_coord])
             last_state = state
             state = last_state.get_next(curr_char)
-            if not state:
+            if not state and not last_state.__contains__(END_WORD_DELIM): # there is an invalid word on the board
                 clear_existing_crosssets(start_coordinate, direction)
                 return
-            else:
-                next_coord = util.offset(curr_coord, direction, -1)
+            next_coord = util.offset(curr_coord, direction, -1)
+        state = last_state
         
-        # at the head of the word (?)
+        # the start and end of the word
         right_square = util.offset(end_coordinate, direction, 1)
         left_square = util.offset(curr_coord, direction, -1)
 
@@ -254,7 +263,8 @@ class ScrabbleEnv(gym.Env):
         right_of_right = util.offset(right_square, direction, 1)
 
         curr_char = util.char_idx_to_char(self.board[curr_coord])
-        if self.board[left_of_left] != -1:
+        print(curr_char)
+        if not util.pos_in_bounds(left_of_left) and self.board[left_of_left] != -1:
             candidates = (arc for arc in state if arc.char != DELIM)
             cross_set_characters = [
                 candidate.character 
@@ -263,13 +273,20 @@ class ScrabbleEnv(gym.Env):
             ]
             cross_set_indices = map(util.char_to_char_idx, cross_set_characters)
             cross_set = list(cross_set_indices)
-            self.cross_sets[left_square[0], left_square[1]][direction.value] = util.create_cross_set_np_array(cross_set)
+            self.cross_sets[left_square][direction.value] = util.create_cross_set_np_array(cross_set)
         else:
-            cross_set = last_state.get_arc(curr_char).letter_set()
-            self.cross_sets[left_square[0], left_square[1]][direction.value] = util.create_cross_set_np_array(cross_set)
+            letter_set = last_state.get_arc(curr_char).letter_set if last_state.get_arc(curr_char) else []
+            next_state = last_state.get_next(curr_char)
+            cross_set = filter(lambda letter: 
+                               next_state.__contains__(letter)
+                               and next_state.get_arc(letter)
+                               and END_WORD_DELIM in next_state.get_arc(letter).letter_set, 
+                               letter_set)
+            cross_set = list(map(util.char_to_char_idx, cross_set))
+            self.cross_sets[left_square][direction.value] = util.create_cross_set_np_array(cross_set)
         
         ## right side
-        if self.board[right_of_right] != -1:
+        if not util.pos_in_bounds(right_of_right) and self.board[right_of_right] != -1:
             end_state = state.get_next(DELIM)
             candidates = (arc for arc in end_state if arc != DELIM) if end_state else {}
             cross_set_characters = [
@@ -279,11 +296,20 @@ class ScrabbleEnv(gym.Env):
             ]
             cross_set_indices = map(util.char_to_char_idx, cross_set_characters)
             cross_set = list(cross_set_indices)
-            self.cross_sets[right_square[0], right_square[1]][direction.value] = util.create_cross_set_np_array(cross_set)
+            self.cross_sets[right_square][direction.value] = util.create_cross_set_np_array(cross_set)
         else:
-            end_arc = state.get_arc(DELIM)
-            cross_set = end_arc.letter_set() if end_arc else {}
-            self.cross_sets[right_square[0], right_square[1]][direction.value] = util.create_cross_set_np_array(cross_set)
+            letter_set = state.get_arc(curr_char).letter_set if state.get_arc(curr_char) else []
+            next_state = state.get_next(curr_char)
+            cross_set = []
+            if DELIM in letter_set:
+                delim_state = next_state.get_next(DELIM)
+                letter_set = delim_state.letter_set
+                cross_set = filter(lambda letter:
+                                    delim_state.get_arc(letter)
+                                    and END_WORD_DELIM in delim_state.get_arc(letter).letter_set, 
+                                    letter_set)
+                cross_set = list(map(util.char_to_char_idx, cross_set))
+            self.cross_sets[right_square][direction.value] = util.create_cross_set_np_array(cross_set)
 
     def current_letter_rack_has_letter(self, letter):
         return np.isin(letter, self.p1_letter_rack if self.current_player == 0 else self.p2_letter_rack)
@@ -302,21 +328,12 @@ class ScrabbleEnv(gym.Env):
             word_multiplier = util.WORD_MULTIPLIER_POSITIONS.get((i, j))
             if cell_value != -1:  # letter is placed
                 return f"\033[91m {util.char_idx_to_char(cell_value)} \033[0m"
-            elif letter_multiplier is not None and letter_multiplier != 0:  # letter multiplier cell
-                return "DL " if letter_multiplier == 2 else "TL "
-            elif word_multiplier is not None and word_multiplier != 0:  # word multiplier cell
-                return "DW " if word_multiplier == 2 else "TW "
+            # elif letter_multiplier is not None and letter_multiplier != 0:  # letter multiplier cell
+            #     return "DL " if letter_multiplier == 2 else "TL "
+            # elif word_multiplier is not None and word_multiplier != 0:  # word multiplier cell
+            #     return "DW " if word_multiplier == 2 else "TW "
             else:
-                # TODO: this whole else block should just be `return "   "` (the rest is for debugging)
-                if np.all(self.cross_sets[i, j][DIRECTION.ACROSS.value] == -1) and np.all(self.cross_sets[i, j][DIRECTION.DOWN.value] == -1):
-                    return "   "  # empty cell
-                else:
-                    num_across_chars = (self.cross_sets[i, j][DIRECTION.ACROSS.value] != -1).sum()
-                    num_down_chars = (self.cross_sets[i, j][DIRECTION.DOWN.value] != -1).sum()
-                    if num_across_chars < 10 and num_down_chars < 10:
-                        return f"{num_across_chars} {num_down_chars}"
-                    else:
-                        return f"{num_across_chars}{num_down_chars}"
+                return "   "
 
         # Print top border
         print("    " + "    ".join([f"{i:2}" for i in range(util.BOARD_DIM)]))
