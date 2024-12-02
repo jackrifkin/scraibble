@@ -152,6 +152,9 @@ class ScrabbleEnv(gym.Env):
                 self.p1_letter_rack[np.where(self.p1_letter_rack == tile)[0][0]] = -1
             else:
                 self.p2_letter_rack[np.where(self.p2_letter_rack == tile)[0][0]] = -1
+
+        # update cross_sets
+        self.update_all_crosssets_affected_by_move(action)
         
         # refill rack
         self.fill_letter_racks()
@@ -172,12 +175,12 @@ class ScrabbleEnv(gym.Env):
         return self.get_observation(), total_score, isDone, {}
         
     
-    def update_all_crosssets_affected_by_move(self, start_coordinate, direction, dictionary):
+    def update_all_crosssets_affected_by_move(self, action):
         # down crosssets of tile at (7,7): crosssets[7,7]["down"]
         # across crosssets of tile at (7,7): crosssets[7,7]["across"]
         ## helpers:
         ## can get rightmost (1) or leftmost (-1) letter (depending on step)
-        def get_last_letter(self, start_coordinate, direction, step):
+        def get_last_letter(start_coordinate, direction, step):
             curr = start_coordinate
             next = util.offset(start_coordinate, direction, step)
             row = next[0]
@@ -187,7 +190,7 @@ class ScrabbleEnv(gym.Env):
                 next = util.offset(curr, direction, step)
                 row = next[0]
                 col = next[1]
-                return curr
+            return curr
         
         ## returns boolean
         def check_candidate(coord, candidate, direction, step):
@@ -205,27 +208,37 @@ class ScrabbleEnv(gym.Env):
             return tile in last_arc.letter_set
         
         # clears existing crossets next to the word being made
-        def clear_existing_crosssets(self, coord, direction):
-            rightmost_coord = get_last_letter(self.board, coord, direction, 1)
+        def clear_existing_crosssets(coord, direction):
+            rightmost_coord = get_last_letter(coord, direction, 1)
             right_empty = util.offset(rightmost_coord, direction, 1)
             if (self.board[right_empty[0], right_empty[1]]) == -1:
-                self.cross_sets[right_empty[0], right_empty[1]][direction.value] = []
+                self.cross_sets[right_empty[0], right_empty[1]][direction.value] = np.zeros(26) - 1
 
-            leftmost_coord = get_last_letter(self.board, coord, direction, -1)
+            leftmost_coord = get_last_letter(coord, direction, -1)
             left_empty = util.offset(leftmost_coord, direction, -1)
             if (self.board[left_empty[0], left_empty[1]]) == -1:
-                self.cross_sets[left_empty[0], left_empty[1]][direction.value] = []
+                self.cross_sets[left_empty[0], left_empty[1]][direction.value] = np.zeros(26) - 1
         
+        # determine direction and start coord of action
+        direction = DIRECTION.ACROSS if all(letter['row'] == action[0]['row'] for letter in action) else DIRECTION.DOWN
+        row, col = action[0]['row'], action[0]['col']
+        delta = (-1, 0) if direction == DIRECTION.DOWN else (0, -1)
+        while util.pos_in_bounds((row + delta[0], col + delta[1])) and self.board[row + delta[0], col + delta[1]] != -1:
+            row += delta[0]
+            col += delta[1]
+        start_coordinate = (row, col)
+        print(start_coordinate, direction)
+
         if self.board[start_coordinate[0], start_coordinate[1]] is None or self.board[start_coordinate[0], start_coordinate[1]] == -1:
             return # do not do anything
         end_coordinate = get_last_letter(start_coordinate, direction, 1)
 
         curr_coord = end_coordinate
-        curr_char = util.char_idx_to_char(self.board(curr_coord))
+        curr_char = util.char_idx_to_char(self.board[curr_coord])
         last_state = GADDAG.root
         state = last_state.get_next(curr_char)
         next_coord = util.offset(curr_coord, direction, -1)
-        while self.board(next_coord) != 1:
+        while self.board[next_coord] != 1:
             curr_coord = next_coord
             last_state = state
             state = last_state.get_next(curr_char)
@@ -243,7 +256,7 @@ class ScrabbleEnv(gym.Env):
         left_of_left = util.offset(left_square, direction, -1)
         right_of_right = util.offset(right_square, direction, 1)
 
-        curr_char = util.char_idx_to_char(self.board(curr_coord))
+        curr_char = util.char_idx_to_char(self.board[curr_coord])
         if self.board[left_of_left] != -1:
             candidates = (arc for arc in state if arc.char != DELIM)
             cross_set_characters = [
@@ -253,10 +266,10 @@ class ScrabbleEnv(gym.Env):
             ]
             cross_set_indices = map(util.char_to_char_idx, cross_set_characters)
             cross_set = list(cross_set_indices)
-            self.cross_sets[left_square[0], left_square[1]][direction.value] = cross_set
+            self.cross_sets[left_square[0], left_square[1]][direction.value] = util.create_cross_set_np_array(cross_set)
         else:
             cross_set = last_state.get_arc(curr_char).letter_set()
-            self.cross_sets[left_square[0], left_square[1]][direction.value] = cross_set
+            self.cross_sets[left_square[0], left_square[1]][direction.value] = util.create_cross_set_np_array(cross_set)
         
         ## right side
         if self.board[right_of_right] != -1:
@@ -269,11 +282,11 @@ class ScrabbleEnv(gym.Env):
             ]
             cross_set_indices = map(util.char_to_char_idx, cross_set_characters)
             cross_set = list(cross_set_indices)
-            self.cross_sets[right_square[0], right_square[1]][direction.value] = cross_set
+            self.cross_sets[right_square[0], right_square[1]][direction.value] = util.create_cross_set_np_array(cross_set)
         else:
             end_arc = state.get_arc(DELIM)
             cross_set = end_arc.letter_set() if end_arc else {}
-            self.cross_sets[right_square[0], right_square[1]][direction.value] = cross_set
+            self.cross_sets[right_square[0], right_square[1]][direction.value] = util.create_cross_set_np_array(cross_set)
 
     def current_letter_rack_has_letter(self, letter):
         return np.isin(letter, self.p1_letter_rack if self.current_player == 0 else self.p2_letter_rack)

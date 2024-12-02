@@ -98,25 +98,8 @@ class Gaddag:
                 word = word.upper()
                 Gaddag.add_word(root, word)
         return root
-    
-    def store(self, filename: str):
-        """stores a GADDAG data structure to the designated file"""
-
-        with gzip.open(filename, "wb") as f:
-            f.write(pickle.dumps(self.root))
-
-    @classmethod
-    def load_from_pickle(cls, filename: str) -> "Gaddag":
-        root = cls.__load_picked_dictionary_from_file(filename)
-        return cls(root)
-    
-    @staticmethod
-    def __load_picked_dictionary_from_file(filename) -> "State":
-        """loads a GADDAG data structure from a file"""
-
-        with gzip.open(filename, "rb") as f:
-            return pickle.loads(f.read())
-    
+      
+    @property
     def root(self):
         return self._root
     
