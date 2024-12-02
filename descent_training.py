@@ -7,9 +7,9 @@ from scrabble_gym import ScrabbleEnv
 
 def pick_action(weights, state):
     board = state["board"]
-    possible_actions = u.generate_possible_moves(board, state["letter_rack"], state["cross_sets"])
+    print(f"the board in our current state is: {board}")
+    possible_actions = u.generate_possible_moves(board.copy(), state["letter_rack"], state["cross_sets"])
     possible_actions = [action for action in possible_actions if len(action) > 1]
-    print(f"Possible actions: {possible_actions}") # REMOVE
     best_action = None
     best_action_heuristic = -1
     best_action_factors = np.zeros(5)
@@ -21,12 +21,12 @@ def pick_action(weights, state):
     print(rack_str)
 
     for action in possible_actions:
-        points_scored_val = m.points_scored(board, action)
+        points_scored_val = m.points_scored(board.copy(), action)
         # TODO: uncomment heuristics
         weighted_multipliers_val = m.weighted_multipliers(action)
         action_use_val = m.action_use_value(action)
         multiplier_distance_reduction_val = m.multiplier_distance_reduction(action)
-        opened_spaces_val = m.opened_spaces(board, action)
+        opened_spaces_val = m.opened_spaces(board.copy(), action)
 
         heuristic = m.objective_function(weights, points_scored_val, weighted_multipliers_val, action_use_val, multiplier_distance_reduction_val, opened_spaces_val)
 
@@ -43,7 +43,7 @@ def pick_action(weights, state):
         if points_scored_val > best_action_heuristic:
             best_action = action
             best_action_heuristic = points_scored_val
-
+    print(best_action)
     return best_action, best_action_factors
     
 def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
@@ -54,7 +54,6 @@ def gradient_descent(epochs=1, decay_rate=0.9999, lr=0.001):
     epsilon = 1
 
     for _ in range(epochs):
-        print("in next epoch") # REMOVE
         state = env.reset()
         done = False
 

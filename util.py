@@ -64,11 +64,12 @@ def is_action_placement_valid(board, action):
     if not is_tile_placement_valid(board, row, col, action):
       tile_placements_valid = False
 
+  print(f"tile placements valid? : {tile_placements_valid}")
   return is_action_continuous(board, action) and tile_placements_valid
 
 # checks if the given row and col are adjacent to an existing tile or a different tile from the action
 def is_tile_placement_valid(board, row, col, action):
-  result = False
+  # result = False
   if (row >= 0 and row < BOARD_DIM) and (col >= 0 and col < BOARD_DIM):
     # if there is already a tile on the board, invalid
     if board[row, col] != -1:
@@ -84,21 +85,16 @@ def is_tile_placement_valid(board, row, col, action):
     for adj_row, adj_col in adjacent_positions:
       if 0 <= adj_row < BOARD_DIM and 0 <= adj_col < BOARD_DIM:
         if board[adj_row, adj_col] != -1:
-          result = True # there is an adjacent tile
-          break
+          return True
     
     # if there are no existing adjacent tiles, check other tiles from the current action
-    if not result:
-      for tile_placement in action:
-        other_row = tile_placement["row"]
-        other_col = tile_placement["col"]
-        for adj_row, adj_col in adjacent_positions:
-          if adj_row == other_row and adj_col == other_col:
-            result = True # one of the tiles from the actions is adjacent
-            break
-        if result:
-          break
-  return result
+    for tile_placement in action:
+      other_row = tile_placement["row"]
+      other_col = tile_placement["col"]
+      for adj_row, adj_col in adjacent_positions:
+        if adj_row == other_row and adj_col == other_col:
+          return True
+  return False
 
 # checks if all tile placements in the action are either all in the same row or all in the same col
 # and if they form an unbroken continuous word
@@ -108,7 +104,6 @@ def is_action_continuous(board, action):
   
   in_same_row = np.all(rows == rows[0])
   in_same_col = np.all(cols == cols[0])
-  tiles_inline = in_same_row or in_same_col
 
   # place tiles on board copy for testing continuity
   new_board = board.copy()
@@ -118,7 +113,6 @@ def is_action_continuous(board, action):
     tile = tile_placement["tile"]
     new_board[row, col] = tile
 
-  continuous = True
   if in_same_row:
     first_col = np.min(cols)
     last_col = np.max(cols)
@@ -131,6 +125,7 @@ def is_action_continuous(board, action):
     
     # all tiles in between must be non-empty
     continuous = np.all(new_board[tiles_in_action] != -1)
+    return continuous
   elif in_same_col:
     first_row = np.min(rows)
     last_row = np.max(rows)
@@ -143,8 +138,9 @@ def is_action_continuous(board, action):
     
     # all tiles in between must be non-empty
     continuous = np.all(new_board[tiles_in_action] != -1)
-
-  return tiles_inline and continuous
+    return continuous
+  else:
+    return False
 
 def calculate_score_for_action(board, action):
   # get all words made by new tiles (any sequence of tiles in the same row or col as each tile that is adjacent to each tile)
