@@ -156,6 +156,9 @@ class ScrabbleEnv(gym.Env):
             else:
                 self.p2_letter_rack[np.where(self.p2_letter_rack == tile)[0][0]] = -1
         
+        # update cross_sets
+        self.update_all_crosssets_affected_by_move(action)
+
         # refill rack
         self.fill_letter_racks()
 
@@ -205,7 +208,6 @@ class ScrabbleEnv(gym.Env):
 
 
     def update_cross_set(self, start_coordinate, direction):
-        print(f"updating cross set for start coord: {start_coordinate} in direction: {direction}")
         ## helpers:
         ## returns boolean
         def check_candidate(coord, candidate, direction, step):
@@ -263,9 +265,8 @@ class ScrabbleEnv(gym.Env):
         right_of_right = util.offset(right_square, direction, 1)
 
         curr_char = util.char_idx_to_char(self.board[curr_coord])
-        print(curr_char)
-        if not util.pos_in_bounds(left_of_left) and self.board[left_of_left] != -1:
-            candidates = (arc for arc in state if arc.char != DELIM)
+        if util.pos_in_bounds(left_of_left) and self.board[left_of_left] != -1:
+            candidates = (arc for arc in state if arc.character != DELIM)
             cross_set_characters = [
                 candidate.character 
                 for candidate in candidates 
@@ -286,7 +287,7 @@ class ScrabbleEnv(gym.Env):
             self.cross_sets[left_square][direction.value] = util.create_cross_set_np_array(cross_set)
         
         ## right side
-        if not util.pos_in_bounds(right_of_right) and self.board[right_of_right] != -1:
+        if util.pos_in_bounds(right_of_right) and self.board[right_of_right] != -1:
             end_state = state.get_next(DELIM)
             candidates = (arc for arc in end_state if arc != DELIM) if end_state else {}
             cross_set_characters = [
@@ -328,10 +329,10 @@ class ScrabbleEnv(gym.Env):
             word_multiplier = util.WORD_MULTIPLIER_POSITIONS.get((i, j))
             if cell_value != -1:  # letter is placed
                 return f"\033[91m {util.char_idx_to_char(cell_value)} \033[0m"
-            # elif letter_multiplier is not None and letter_multiplier != 0:  # letter multiplier cell
-            #     return "DL " if letter_multiplier == 2 else "TL "
-            # elif word_multiplier is not None and word_multiplier != 0:  # word multiplier cell
-            #     return "DW " if word_multiplier == 2 else "TW "
+            elif letter_multiplier is not None and letter_multiplier != 0:  # letter multiplier cell
+                return "DL " if letter_multiplier == 2 else "TL "
+            elif word_multiplier is not None and word_multiplier != 0:  # word multiplier cell
+                return "DW " if word_multiplier == 2 else "TW "
             else:
                 return "   "
 

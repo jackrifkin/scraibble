@@ -336,20 +336,6 @@ def generate_possible_moves(board, rack, cross_sets):
   actions = []
   anchors_used = set()
 
-  # count = 0
-  # for i in range(len(cross_sets)):
-  #   for j in range(len(cross_sets[i])):
-  #     if not np.all(cross_sets[i, j][0] == -1):
-  #       count += 1
-  #       print('Down crossset:')
-  #       print(f"{i} {j} {list(map(char_idx_to_char, cross_sets[i, j][0]))}")
-  #     if not np.all(cross_sets[i, j][1] == -1):
-  #       count += 1
-  #       print('Across crossset:')
-  #       print(f"{i} {j} {list(map(char_idx_to_char, cross_sets[i, j][1]))}")
-  # if not count:
-  #   print('no crosssets....')
-
   def gen(pos, word, rack, arc: g.Arc, new_tiles, blanks, anchor, direction):
     rack = rack.copy()
     current_position = offset(anchor, direction, pos)

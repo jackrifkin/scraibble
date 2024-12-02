@@ -3,7 +3,6 @@ import gym
 import model as m
 import new_gaddag as g
 import util as u
-import util_testing as ut
 from scrabble_gym import ScrabbleEnv
 
 def pick_action_greedy(state):
@@ -14,7 +13,10 @@ def pick_action_greedy(state):
     best_points_scored = 0
 
     for action in possible_actions:
-        points_scored = m.points_scored(board, action)
+        try:
+            points_scored = m.points_scored(board, action)
+        except ValueError:
+            continue
         if points_scored > best_points_scored:
             best_action = action
             best_points_scored = points_scored
@@ -32,7 +34,7 @@ def pick_action(weights, state):
     for action in possible_actions:
         try:
             points_scored_val = m.points_scored(board.copy(), action)
-        except ValueError as e:
+        except ValueError:
             # action is invalid, skip
             continue
         weighted_multipliers_val = m.weighted_multipliers(action)
@@ -49,7 +51,6 @@ def pick_action(weights, state):
             best_action_factors[2] = action_use_val
             best_action_factors[3] = multiplier_distance_reduction_val
             best_action_factors[4] = opened_spaces_val
-    print(ut.action_to_word(best_action))
     return best_action, best_action_factors
     
 def gradient_descent(epochs=10, decay_rate=0.99, lr=0.001):
