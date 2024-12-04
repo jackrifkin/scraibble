@@ -82,6 +82,7 @@ class Gaddag:
     __slots__ = "_root" # the root State of the GADDAG
 
     def __init__(self):
+        print('\nInitializing GADDAG...\nthis may take a moment...\n')
         self._root = Gaddag.construct_root_from_txt("SOWPODS.txt")
         print('\n\nInitialized GADDAG...\n\n')
 
@@ -90,10 +91,17 @@ class Gaddag:
     def construct_root_from_txt(filepath):
         root = State()
         with open(filepath, "r") as file:
-            for line in file:
+            total_lines = sum(1 for _ in file)
+
+        with open(filepath, "r") as file:
+            for idx, line in enumerate(file):
                 word = line.strip()
                 word = word.upper()
                 Gaddag.add_word(root, word)
+
+                percent_complete = (idx + 1) * 100 // total_lines
+                if idx and idx % (total_lines // 10) == 0:
+                    print(f"{percent_complete}%")
         return root
       
     @property

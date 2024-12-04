@@ -198,24 +198,12 @@ def gradient_descent(epochs=10000, decay_rate=0.9999, lr=0.001):
     print(f"player one winning rate: {player_1_winning_rate / epochs}")
     return best_weights
 
-gradient_descent()
+epochs = input("Enter the number of epochs (games) to run (defaut 1000): ")
+decay_rate = input("Enter the epsilon decay rate to use (defaut 0.99): ")
+lr = input("Enter the learning rate to use (default 0.001): ")
 
-class FinalWeightEvaluation:
-    def __init__(self, env):
-        self.env = env
+epochs = int(epochs) if epochs else 1000
+decay_rate = float(decay_rate) if decay_rate else 0.99
+lr = float(lr) if lr else 0.001
 
-    def evaluate_weights(self, weights, num_episodes=100):
-        total_scores = []
-
-        for _ in range(num_episodes):
-            state, _ = self.env.reset()
-            done = False
-
-            while not done:
-                action, _, _, _, _, _ = pick_action(weights, state)
-                
-                state, score, done, _ = self.env.step(action)
-                
-            total_scores.append(score)
-
-        return np.mean(total_scores)
+gradient_descent(epochs, decay_rate, lr)
