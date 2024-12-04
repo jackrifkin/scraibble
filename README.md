@@ -26,6 +26,8 @@ The `util.py` file contains methods used by both the gym and gradient descent tr
    Replace the above index URL with whichever version of Pytorch corresponds to your drivers, you can check at [this website](https://pytorch.org/get-started/locally/)
 
 ## Running the Program
-This program requires that you have the SOWPODS.txt file in your project locally. Since the file is too large to include on GitHub, please download it and place it in your repo from [this link](https://www.dropbox.com/scl/fi/eqe4laac3x49mhoafwt83/SOWPODS.txt?rlkey=906lkevkje72ihsyskgoqymd4&st=l0xqxnzv&dl=0)
+This program requires that you have the SOWPODS.txt file in your project locally. Since the file is too large to include on GitHub, please download it and place it in your repo from [this link](https://web.mit.edu/jesstess/www/sowpods.txt)
+
+One way to do so is to run `curl https://web.mit.edu/jesstess/www/sowpods.txt -o SOWPODS.txt` in your terminal.
 
 To run the gradient descent program, run `py3 .\descent_training.py`
