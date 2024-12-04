@@ -29,4 +29,4 @@ A gradient descent training program is defined in the `descent_training.py` file
 
 ## Running the Program
 
-To run the gradient descent program, &lt;_Command to run program_&gt;
+To run the gradient descent program, run `py3 .\descent_training.py`
