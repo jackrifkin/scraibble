@@ -17,13 +17,7 @@ A gradient descent training program is defined in the `descent_training.py` file
    
    a. pip install numpy gym matplotlib scipy
    
-   b. pip install gym
-   
-   c. pip install matplotlib
-   
-   d. pip install scipy
-   
-   e. pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117
+   b. pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117
 
    Replace the above index URL with whichever version of Pytorch corresponds to your drivers, you can check at [this website](https://pytorch.org/get-started/locally/)
 
