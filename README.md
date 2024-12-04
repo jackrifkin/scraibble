@@ -13,6 +13,19 @@ A gradient descent training program is defined in the `descent_training.py` file
 ``python3 -m venv venv``
 2. Activate your venv with:
 ``source venv/bin/activate``, or on Windows, ``venv\Scripts\activate``
+3. Install the required packages:
+   
+   a. pip install numpy
+   
+   b. pip install gym
+   
+   c. pip install matplotlib
+   
+   d. pip install scipy
+   
+   e. pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117
+
+   Replace the above index URL with whichever version of Pytorch corresponds to your drivers, you can check at [this website](https://pytorch.org/get-started/locally/)
 
 ## Running the Program
 
