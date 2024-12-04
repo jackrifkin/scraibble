@@ -28,6 +28,6 @@ The `util.py` file contains methods used by both the gym and gradient descent tr
 ## Running the Program
 This program requires that you have the SOWPODS.txt file in your project locally. Since the file is too large to include on GitHub, please download it and place it in your repo from [this link](https://web.mit.edu/jesstess/www/sowpods.txt)
 
-One way to do so is to run `curl https://web.mit.edu/jesstess/www/sowpods.txt -o SOWPODS.txt` in your terminal.
+Alternatively, run `curl https://web.mit.edu/jesstess/www/sowpods.txt -o SOWPODS.txt` in your terminal.
 
-To run the gradient descent program, run `py3 .\descent_training.py`
+To run the gradient descent program, run `py3 .\descent_training.py` and input your preferred gradient descent parameters when prompted.
