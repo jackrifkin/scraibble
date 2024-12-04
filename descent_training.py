@@ -1,7 +1,5 @@
 import numpy as np
-import gym
 import model as m
-import new_gaddag as g
 import util as u
 from scrabble_gym import ScrabbleEnv
 import matplotlib.pyplot as plt

@@ -1,1 +1,14 @@
-### ScrAIbble
+# ScrAIbble
+This repo includes a Scrabble-playing heuristic-based model with an accompanying Scrabble gym environment and GADDAG dictionary implementation.
+
+The GADDAG class definitions are contained in the `gaddag.py` file, and include logic for traversing a Gaddag instance and verifying word validity
+
+The `scrabble_gym.py` file contains a gym implementation of the game, Scrabble, and can be interacted with using the `reset()`, `step()` and `render()` methods.
+
+A gradient descent training program is defined in the `descent_training.py` file. The program initializes the gym environment initialization, generates moves, evaluates heuristics, interacts with the gym environment, and plots the results. 
+
+## Running the Program
+
+&lt;_Virtual env setup goes here_&gt;
+
+To run the gradient descent program, &lt;_Command to run program_&gt;

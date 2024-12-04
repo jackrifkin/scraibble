@@ -1,6 +1,6 @@
 import gym
 from gym import spaces
-from new_gaddag import DELIM, END_WORD_DELIM
+from gaddag import DELIM, END_WORD_DELIM
 import numpy as np
 import random as rand
 import util

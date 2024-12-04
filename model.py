@@ -50,9 +50,6 @@ def action_use_value(action):
   possible_max_use_value = 12 * len(action) if len(action) > 0 else 12
   return total_use_value / possible_max_use_value
 
-# TODO Update to consider number of moves it would take to reach a muliplier instead of number of tiles
-# We assume that the opponent can definitely reach 3 spots outwards from any move that we play
-# Should we make this a dynamic measure later on?
 def multiplier_distance_reduction(action, opponent_range=3):
     ## HELPER FUNCTIONS ##
     

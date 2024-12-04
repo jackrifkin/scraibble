@@ -1,6 +1,3 @@
-import pickle
-import gzip
-
 DELIM = '>' # separates reversed suffixes from prefixes in GADDAG
 END_WORD_DELIM = '*'
 
