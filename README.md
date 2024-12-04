@@ -15,7 +15,7 @@ A gradient descent training program is defined in the `descent_training.py` file
 ``source venv/bin/activate``, or on Windows, ``venv\Scripts\activate``
 3. Install the required packages:
    
-   a. pip install numpy
+   a. pip install numpy gym matplotlib scipy
    
    b. pip install gym
    
