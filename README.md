@@ -1,4 +1,6 @@
 # ScrAIbble
+
+## Document Overview
 This repo includes a Scrabble-playing heuristic-based model with an accompanying Scrabble gym environment and GADDAG dictionary implementation.
 
 The GADDAG class definitions are contained in the `gaddag.py` file, and include logic for traversing a Gaddag instance and verifying word validity
@@ -6,6 +8,8 @@ The GADDAG class definitions are contained in the `gaddag.py` file, and include 
 The `scrabble_gym.py` file contains a gym implementation of the game, Scrabble, and can be interacted with using the `reset()`, `step()` and `render()` methods.
 
 A gradient descent training program is defined in the `descent_training.py` file. The program initializes the gym environment initialization, generates moves, evaluates heuristics, interacts with the gym environment, and plots the results. 
+
+The `util.py` file contains methods used by both the gym and gradient descent training to evaluate shared metrics, and is where our logic for generating moves lies. 
 
 ## Virtual Environment Setup (optional)
 (Only do the first step once, after you initially clone the repo)
@@ -22,5 +26,6 @@ A gradient descent training program is defined in the `descent_training.py` file
    Replace the above index URL with whichever version of Pytorch corresponds to your drivers, you can check at [this website](https://pytorch.org/get-started/locally/)
 
 ## Running the Program
+This program requires that you have the SOWPODS.txt file in your project locally. Since the file is too large to include on GitHub, please download it and place it in your repo from [this link](https://www.dropbox.com/scl/fi/eqe4laac3x49mhoafwt83/SOWPODS.txt?rlkey=906lkevkje72ihsyskgoqymd4&st=l0xqxnzv&dl=0)
 
 To run the gradient descent program, run `py3 .\descent_training.py`
